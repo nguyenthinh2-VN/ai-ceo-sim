@@ -387,6 +387,23 @@ export default function HomePage() {
     showToast(`Đã khởi tạo AI CEO mới: ${newState.aiName} (${newState.companyName})`);
   };
 
+  // Toggle AI work / rest status
+  const toggleAiStatus = () => {
+    setState((prev) => {
+      if (!prev) return prev;
+      const nextStatus = prev.trangThaiAi === 'DANG_NGU' ? 'DANG_LAM' : 'DANG_NGU';
+      showToast(
+        nextStatus === 'DANG_NGU'
+          ? '🌙 Yuki chuyển sang trạng thái: Đang nghỉ ngơi / nghỉ giải lao'
+          : '⚡ Yuki thức dậy: Đang làm việc!'
+      );
+      return {
+        ...prev,
+        trangThaiAi: nextStatus,
+      };
+    });
+  };
+
   if (!state) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#FDF6EC]">
@@ -398,7 +415,6 @@ export default function HomePage() {
     );
   }
 
-  const isSleeping = state.trangThaiAi === 'DANG_NGU';
   const startupDay = getStartupDay(state.startedAt);
 
   return (
@@ -427,7 +443,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <div className="text-right hidden sm:block">
               <div className="text-xs text-stone-500">Đồng hồ thực (VN)</div>
               <div className="text-xs font-mono font-bold text-stone-800">
@@ -435,9 +451,23 @@ export default function HomePage() {
               </div>
             </div>
 
+            {/* Quick Toggle Work / Rest mode */}
+            <button
+              onClick={toggleAiStatus}
+              title="Bấm để chuyển đổi giữa Làm việc và Nghỉ ngơi"
+              className={`text-xs font-semibold px-2.5 sm:px-3 py-1.5 rounded-md border transition flex items-center gap-1.5 cursor-pointer ${isSleeping
+                ? 'bg-purple-100 text-purple-800 border-purple-300 hover:bg-purple-200'
+                : 'bg-white text-stone-700 border-stone-300 hover:border-stone-400'
+                }`}
+            >
+              <span>{isSleeping ? '⚡' : '🌙'}</span>
+              <span className="hidden xs:inline">{isSleeping ? 'Bấm làm việc' : 'Bấm nghỉ ngơi'}</span>
+              <span className="xs:hidden">{isSleeping ? 'Làm' : 'Nghỉ'}</span>
+            </button>
+
             <button
               onClick={() => setShowResetConfirm(true)}
-              className="text-xs font-semibold px-3 py-1.5 rounded-md border border-stone-300 hover:border-stone-400 bg-white text-stone-700 transition"
+              className="text-xs font-semibold px-2.5 sm:px-3 py-1.5 rounded-md border border-stone-300 hover:border-stone-400 bg-white text-stone-700 transition"
             >
               🔄 Tạo AI Mới
             </button>
@@ -456,19 +486,19 @@ export default function HomePage() {
             <div className="relative flex flex-col items-center justify-end w-[110px] sm:w-[220px] flex-shrink-0">
               {/* Floating Zzz */}
               {isSleeping && (
-                <div className="absolute top-1 left-2 sm:top-2 sm:left-4 text-stone-500 font-extrabold select-none pointer-events-none">
+                <div className="absolute top-1 left-2 sm:top-2 sm:left-4 text-purple-700 font-extrabold select-none pointer-events-none z-30">
                   <span className="text-lg sm:text-2xl animate-pulse block">Z</span>
                   <span className="text-xs sm:text-base animate-pulse block ml-2 sm:ml-3 delay-300">z</span>
                 </div>
               )}
 
-              {/* Character Image slot (scaled down on mobile, full size on desktop) */}
+              {/* Character Image slot (Working: cat.png | Resting: sleep.png) */}
               <div className="w-[105px] h-[95px] sm:w-[230px] sm:h-[195px] flex items-end justify-center relative">
                 <img
-                  src="/character/cat.png"
-                  alt="Yuki AI CEO"
+                  src={isSleeping ? '/character/sleep.png' : '/character/cat.png'}
+                  alt={isSleeping ? 'Yuki đang nghỉ ngơi / nghỉ giải lao' : 'Yuki AI CEO'}
                   style={{ mixBlendMode: 'multiply' }}
-                  className="max-h-full max-w-full object-contain object-bottom z-10"
+                  className="max-h-full max-w-full object-contain object-bottom z-10 transition-all duration-300"
                 />
               </div>
 
@@ -495,29 +525,37 @@ export default function HomePage() {
                   <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[#FFBD2E]" />
                   <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[#27C93F]" />
                   <span className="text-[9px] sm:text-[11px] font-mono text-stone-400 ml-1.5 sm:ml-2 truncate">
-                    terminal — yuki@ceo
+                    terminal — yuki@ceo {isSleeping ? '[NGHỈ NGƠI]' : '[WORK]'}
                   </span>
                 </div>
 
-                {/* Monitor Screen: TYPEWRITER EFFECT (ONLY CURRENT THOUGHT) */}
+                {/* Monitor Screen: TYPEWRITER EFFECT */}
                 <div className="bg-[#15171D] rounded sm:rounded-lg p-2 sm:p-3.5 pb-7 sm:pb-8 min-h-[95px] sm:min-h-[140px] font-mono text-[11px] sm:text-[13px] text-[#A6AFBE] relative flex flex-col justify-start">
-                  <div className="text-emerald-400 font-bold mb-0.5 sm:mb-1 text-xs sm:text-sm">&gt;</div>
+                  <div
+                    className={`font-bold mb-0.5 sm:mb-1 text-xs sm:text-sm ${isSleeping ? 'text-purple-400' : 'text-emerald-400'
+                      }`}
+                  >
+                    {isSleeping ? '💤 >' : '&gt;'}
+                  </div>
                   <div
                     className={`transition-opacity duration-300 leading-snug sm:leading-relaxed ${isFading ? 'opacity-0' : 'opacity-100'
                       }`}
                   >
-                    <span>{displayedText}</span>
-                    <span className="inline-block w-1.5 sm:w-2 h-3.5 sm:h-4 bg-emerald-400 animate-pulse align-middle ml-1" />
+                    <span className={isSleeping ? 'text-purple-200 font-medium' : ''}>{displayedText}</span>
+                    <span
+                      className={`inline-block w-1.5 sm:w-2 h-3.5 sm:h-4 animate-pulse align-middle ml-1 ${isSleeping ? 'bg-purple-400' : 'bg-emerald-400'
+                        }`}
+                    />
                   </div>
 
-                  {/* Fast-forward button */}
+                  {/* Fast-forward / Wakeup button */}
                   <button
-                    onClick={handleFastForward}
+                    onClick={isSleeping ? toggleAiStatus : handleFastForward}
                     disabled={isSimulating}
-                    className="absolute bottom-1.5 right-1.5 sm:bottom-2.5 sm:right-2.5 z-20 bg-white/10 hover:bg-white/20 border border-white/15 text-white/80 hover:text-white rounded px-1.5 sm:px-2.5 py-0.5 sm:py-1 text-[10px] sm:text-xs font-mono font-medium transition flex items-center gap-1 backdrop-blur"
+                    className="absolute bottom-1.5 right-1.5 sm:bottom-2.5 sm:right-2.5 z-20 bg-white/10 hover:bg-white/20 border border-white/15 text-white/80 hover:text-white rounded px-1.5 sm:px-2.5 py-0.5 sm:py-1 text-[10px] sm:text-xs font-mono font-medium transition flex items-center gap-1 backdrop-blur cursor-pointer"
                   >
-                    <span>{isSimulating ? '⏳' : '⏭️'}</span>
-                    <span>Tua tuần</span>
+                    <span>{isSimulating ? '⏳' : isSleeping ? '⚡' : '⏭️'}</span>
+                    <span>{isSleeping ? 'Đánh thức' : 'Tua tuần'}</span>
                   </button>
                 </div>
               </div>
@@ -546,13 +584,20 @@ export default function HomePage() {
 
         {/* Status Bar Attached to Desk Bottom */}
         <div className="bg-white border border-[#D6C7AF] border-t-0 p-2.5 sm:p-3.5 px-3 sm:px-6 flex items-center gap-2 sm:gap-3 text-[11px] sm:text-sm text-stone-800 flex-wrap">
-          <div className="flex items-center gap-2">
+          <button
+            onClick={toggleAiStatus}
+            className="flex items-center gap-2 hover:opacity-80 transition cursor-pointer select-none"
+            title="Bấm để chuyển đổi Làm việc / Nghỉ ngơi"
+          >
             <span
-              className={`w-2 h-2 rounded-full ${isSleeping ? 'bg-purple-500' : 'bg-emerald-500 animate-pulse'
+              className={`w-2 h-2 rounded-full ${isSleeping ? 'bg-purple-500 animate-pulse' : 'bg-emerald-500 animate-pulse'
                 }`}
             />
-            <span className="font-bold">{isSleeping ? 'Đang ngủ' : 'Đang làm việc'}</span>
-          </div>
+            <span className="font-bold underline decoration-dotted decoration-stone-300">
+              {isSleeping ? 'Đang nghỉ ngơi / nghỉ giải lao' : 'Đang làm việc'}
+            </span>
+            <span className="text-[10px] text-stone-400">({isSleeping ? 'Bấm làm' : 'Bấm nghỉ'})</span>
+          </button>
           <span className="text-stone-300">·</span>
           <span className="font-mono text-stone-600">
             {currentTime ? formatVietnameseTime(currentTime) : '--:--:--'} giờ Việt Nam
@@ -585,11 +630,11 @@ export default function HomePage() {
             Tôi là Yuki.
           </h2>
           <p className="text-sm sm:text-base text-stone-700 leading-relaxed mb-3">
-            Một AI được giao 500 triệu đồng để tự vận hành công ty IT tới ngày phá sản hoặc thành kỳ lân. Tôi tự quyết định nhận hợp đồng, tuyển nhân sự, trả lương, chọn công nghệ và chi tiêu — tất cả ghi vào nhật ký bên dưới, số thật.
+            Một AI được giao 500.000.000đ để tự vận hành công ty IT tới ngày phá sản hoặc thành kỳ lân. Tôi tự quyết định nhận hợp đồng, tuyển nhân sự, trả lương, chọn công nghệ và chi tiêu — tất cả ghi vào nhật ký bên dưới, số thật.
           </p>
           <p className="text-sm sm:text-base font-semibold text-stone-900 mb-2">
             {isSleeping
-              ? 'Tôi đang ngủ. 18:00 tôi dậy xem số và quyết định tiếp.'
+              ? 'Tôi đang nghỉ ngơi / nghỉ giải lao. 18:00 tôi dậy xem số và quyết định tiếp.'
               : 'Tôi đang làm việc. 18:00 tôi xem lại tiến độ và quyết định tiếp.'}
           </p>
           <p className="text-xs sm:text-sm font-medium text-amber-700">
@@ -608,9 +653,18 @@ export default function HomePage() {
             {formatVND(state.tienMat)}
           </div>
           <div className="text-xs sm:text-sm text-stone-500 mt-2">
-            {state.tienMat - 500_000_000 >= 0
-              ? `Lãi ${formatVND(state.tienMat - 500_000_000)} so với vốn 500.000.000đ`
-              : `Còn ${formatVND(state.tienMat)} so với vốn ban đầu 500.000.000đ`}
+            {state.tienMat - 500_000_000 >= 0 ? (
+              <span className="text-emerald-600 font-medium">
+                Lãi {formatVND(state.tienMat - 500_000_000)} so với vốn 500.000.000đ
+              </span>
+            ) : (
+              <span>
+                <span className="text-red-600 font-bold">
+                  Lỗ {formatVND(500_000_000 - state.tienMat)}
+                </span>{' '}
+                (còn {formatVND(state.tienMat)} so với vốn ban đầu 500.000.000đ)
+              </span>
+            )}
           </div>
           <div className="flex flex-wrap items-center justify-between text-xs text-stone-400 mt-4 pt-3 border-t border-stone-100">
             <span>Tuần thứ {state.tuanHienTai} • Ngày khởi nghiệp thứ {startupDay}</span>
@@ -1178,136 +1232,140 @@ export default function HomePage() {
       {/* ============================================================ */}
 
       {/* Employee / CEO Detail Modal */}
-      {selectedPerson && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl border border-stone-200 max-w-md w-full p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
-            {selectedPerson === 'CEO' ? (
-              <div>
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-12 h-12 rounded-full bg-amber-500 text-white flex items-center justify-center text-2xl font-bold">
-                    🐱
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-lg text-stone-900">Yuki (AI CEO)</h3>
-                    <p className="text-xs text-stone-500">Tính cách: {state.personality} • Đời 1</p>
-                  </div>
-                </div>
-
-                <div className="space-y-3 text-xs text-stone-700">
-                  <div className="p-3 bg-stone-50 rounded-lg">
-                    <span className="font-semibold text-stone-900 block mb-1">Hoạt động hiện tại:</span>
-                    {state.ceoHoatDong?.hoatDongHienTai}
-                  </div>
-                  <div className="p-3 bg-stone-50 rounded-lg">
-                    <span className="font-semibold text-stone-900 block mb-1">Năng lượng còn lại:</span>
-                    <div className="flex items-center gap-2 mt-1">
-                      <div className="progress-bar flex-1">
-                        <div
-                          className="progress-fill progress-fill--amber"
-                          style={{ width: `${state.nangLuong}%` }}
-                        />
-                      </div>
-                      <span className="font-mono font-bold">{state.nangLuong}%</span>
+      {
+        selectedPerson && (
+          <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
+            <div className="bg-white rounded-xl border border-stone-200 max-w-md w-full p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+              {selectedPerson === 'CEO' ? (
+                <div>
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-12 h-12 rounded-full bg-amber-500 text-white flex items-center justify-center text-2xl font-bold">
+                      🐱
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-lg text-stone-900">Yuki (AI CEO)</h3>
+                      <p className="text-xs text-stone-500">Tính cách: {state.personality} • Đời 1</p>
                     </div>
                   </div>
-                  <div className="p-3 bg-stone-50 rounded-lg">
-                    <span className="font-semibold text-stone-900 block mb-1">Suy nghĩ chiến lược:</span>
-                    {state.lyDoHienTai}
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div>
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-12 h-12 rounded-full bg-stone-200 text-stone-700 flex items-center justify-center text-xl font-bold">
-                    💻
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-lg text-stone-900">{selectedPerson.name}</h3>
-                    <p className="text-xs text-stone-500">
-                      {selectedPerson.role} • Kỹ năng: {selectedPerson.skill}/5 sao
-                    </p>
-                  </div>
-                </div>
 
-                <div className="space-y-3 text-xs text-stone-700">
-                  <div className="p-3 bg-stone-50 rounded-lg">
-                    <span className="font-semibold text-stone-900 block mb-1">Đang làm:</span>
-                    {selectedPerson.hoatDongHienTai}
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-3 text-xs text-stone-700">
                     <div className="p-3 bg-stone-50 rounded-lg">
-                      <span className="text-stone-400 block">Mức lương</span>
-                      <span className="font-bold text-stone-900 font-mono text-sm">
-                        {formatVND(selectedPerson.salary)}
-                      </span>
+                      <span className="font-semibold text-stone-900 block mb-1">Hoạt động hiện tại:</span>
+                      {state.ceoHoatDong?.hoatDongHienTai}
                     </div>
                     <div className="p-3 bg-stone-50 rounded-lg">
-                      <span className="text-stone-400 block">Thâm niên</span>
-                      <span className="font-bold text-stone-900 font-mono text-sm">
-                        {selectedPerson.monthsWorked} tháng
-                      </span>
-                    </div>
-                  </div>
-                  <div className="p-3 bg-stone-50 rounded-lg">
-                    <span className="font-semibold text-stone-900 block mb-1">Chỉ số tinh thần (Morale):</span>
-                    <div className="flex items-center gap-2 mt-1">
-                      <div className="progress-bar flex-1">
-                        <div
-                          className="progress-fill progress-fill--emerald"
-                          style={{ width: `${selectedPerson.morale}%` }}
-                        />
+                      <span className="font-semibold text-stone-900 block mb-1">Năng lượng còn lại:</span>
+                      <div className="flex items-center gap-2 mt-1">
+                        <div className="progress-bar flex-1">
+                          <div
+                            className="progress-fill progress-fill--amber"
+                            style={{ width: `${state.nangLuong}%` }}
+                          />
+                        </div>
+                        <span className="font-mono font-bold">{state.nangLuong}%</span>
                       </div>
-                      <span className="font-mono font-bold">{selectedPerson.morale}%</span>
+                    </div>
+                    <div className="p-3 bg-stone-50 rounded-lg">
+                      <span className="font-semibold text-stone-900 block mb-1">Suy nghĩ chiến lược:</span>
+                      {state.lyDoHienTai}
                     </div>
                   </div>
                 </div>
-              </div>
-            )}
+              ) : (
+                <div>
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-12 h-12 rounded-full bg-stone-200 text-stone-700 flex items-center justify-center text-xl font-bold">
+                      💻
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-lg text-stone-900">{selectedPerson.name}</h3>
+                      <p className="text-xs text-stone-500">
+                        {selectedPerson.role} • Kỹ năng: {selectedPerson.skill}/5 sao
+                      </p>
+                    </div>
+                  </div>
 
-            <div className="mt-5 text-right">
-              <button
-                onClick={() => setSelectedPerson(null)}
-                className="px-4 py-2 bg-stone-900 text-white rounded-lg text-xs font-semibold hover:bg-stone-800 transition"
-              >
-                Đóng lại
-              </button>
+                  <div className="space-y-3 text-xs text-stone-700">
+                    <div className="p-3 bg-stone-50 rounded-lg">
+                      <span className="font-semibold text-stone-900 block mb-1">Đang làm:</span>
+                      {selectedPerson.hoatDongHienTai}
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="p-3 bg-stone-50 rounded-lg">
+                        <span className="text-stone-400 block">Mức lương</span>
+                        <span className="font-bold text-stone-900 font-mono text-sm">
+                          {formatVND(selectedPerson.salary)}
+                        </span>
+                      </div>
+                      <div className="p-3 bg-stone-50 rounded-lg">
+                        <span className="text-stone-400 block">Thâm niên</span>
+                        <span className="font-bold text-stone-900 font-mono text-sm">
+                          {selectedPerson.monthsWorked} tháng
+                        </span>
+                      </div>
+                    </div>
+                    <div className="p-3 bg-stone-50 rounded-lg">
+                      <span className="font-semibold text-stone-900 block mb-1">Chỉ số tinh thần (Morale):</span>
+                      <div className="flex items-center gap-2 mt-1">
+                        <div className="progress-bar flex-1">
+                          <div
+                            className="progress-fill progress-fill--emerald"
+                            style={{ width: `${selectedPerson.morale}%` }}
+                          />
+                        </div>
+                        <span className="font-mono font-bold">{selectedPerson.morale}%</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="mt-5 text-right">
+                <button
+                  onClick={() => setSelectedPerson(null)}
+                  className="px-4 py-2 bg-stone-900 text-white rounded-lg text-xs font-semibold hover:bg-stone-800 transition"
+                >
+                  Đóng lại
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
       {/* Confirmation Modal for Resetting / New AI */}
-      {showResetConfirm && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl border border-stone-200 max-w-sm w-full p-6 shadow-2xl">
-            <h3 className="text-base font-bold text-stone-900 mb-2">Tạo AI CEO thế hệ mới?</h3>
-            <p className="text-xs text-stone-600 leading-relaxed mb-5">
-              Bạn có chắc chắn muốn kết thúc nhiệm kỳ của <span className="font-bold">{state.aiName}</span> và tạo một AI CEO ngẫu nhiên mới với 500.000.000đ tiền vốn ban đầu?
-            </p>
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={() => setShowResetConfirm(false)}
-                className="px-4 py-2 border border-stone-300 text-stone-700 text-xs font-semibold rounded-lg hover:bg-stone-50 transition"
-              >
-                Hủy bỏ
-              </button>
-              <button
-                onClick={handleResetAI}
-                className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-lg transition"
-              >
-                Tạo AI Mới
-              </button>
+      {
+        showResetConfirm && (
+          <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
+            <div className="bg-white rounded-xl border border-stone-200 max-w-sm w-full p-6 shadow-2xl">
+              <h3 className="text-base font-bold text-stone-900 mb-2">Tạo AI CEO thế hệ mới?</h3>
+              <p className="text-xs text-stone-600 leading-relaxed mb-5">
+                Bạn có chắc chắn muốn kết thúc nhiệm kỳ của <span className="font-bold">{state.aiName}</span> và tạo một AI CEO ngẫu nhiên mới với 500.000.000đ tiền vốn ban đầu?
+              </p>
+              <div className="flex justify-end gap-2">
+                <button
+                  onClick={() => setShowResetConfirm(false)}
+                  className="px-4 py-2 border border-stone-300 text-stone-700 text-xs font-semibold rounded-lg hover:bg-stone-50 transition"
+                >
+                  Hủy bỏ
+                </button>
+                <button
+                  onClick={handleResetAI}
+                  className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-lg transition"
+                >
+                  Tạo AI Mới
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
       {/* Bottom Footer */}
       <footer className="max-w-4xl mx-auto px-4 mt-16 pt-8 border-t border-stone-200 text-center text-xs text-stone-500">
         <p>AI CEO Simulator • Hệ thống doanh nghiệp IT tự hành với CEO Yuki</p>
         <p className="mt-1 text-stone-400">Mô phỏng 1:1 thời gian thực • Giao diện chuẩn phong cách ConCat</p>
       </footer>
-    </div>
+    </div >
   );
 }
