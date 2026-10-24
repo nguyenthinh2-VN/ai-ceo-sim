@@ -11,10 +11,24 @@ Khi tích hợp:
 - LLM: Gemini Flash / GPT-4o-mini / Claude Haiku
 - Database: Supabase (2 bảng: `lives`, `ticks`)
 
+## Hướng dẫn kết nối Supabase
+
+1. Tạo một project mới trên [Supabase](https://supabase.com).
+2. Vào **SQL Editor** trên Supabase Dashboard, mở file `supabase/schema.sql` và nhấn **Run** để khởi tạo các bảng `lives`, `ticks`, index và cấu hình RLS.
+3. Tạo file `.env.local` ở thư mục gốc (tham khảo `.env.example`):
+   ```env
+   NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+   SUPABASE_SERVICE_ROLE_KEY=your-service-role-key-here
+   ```
+4. Chạy ứng dụng:
+   ```bash
+   npm run dev
+   ```
+   > **Lưu ý**: Nếu chưa cấu hình Supabase, hệ thống sẽ tự động dùng In-Memory Mock Repository để bạn vẫn trải nghiệm đầy đủ giao diện mà không gặp lỗi.
+
 ## Cách chạy
 
 ```bash
-cd ai-ceo-sim
 npm install
 npm run dev
 ```

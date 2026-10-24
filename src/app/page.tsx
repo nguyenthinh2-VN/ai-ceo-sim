@@ -212,17 +212,38 @@ export default function HomePage() {
   const [diaryDays, setDiaryDays] = useState<DiaryDayGroup[]>(INITIAL_DIARY_DAYS);
   const [diaryRows, setDiaryRows] = useState<DiaryRow[]>(INITIAL_CASHFLOW_ROWS);
 
-  // Initialize demo state
+  // Initialize state via /api/state
   useEffect(() => {
-    const initialState = getDemoState();
-    setState(initialState);
-    setDiaryDays(getInitialDiaryDays(initialState.aiName));
-    setDiaryRows(getInitialCashflowRows(initialState.aiName));
     setCurrentTime(new Date());
-
     const timer = setInterval(() => {
       setCurrentTime(new Date());
     }, 1000);
+
+    const loadState = async () => {
+      try {
+        const res = await fetch('/api/state');
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        if (data.state) {
+          setState(data.state);
+          setDiaryDays(getInitialDiaryDays(data.state.aiName));
+          setDiaryRows(getInitialCashflowRows(data.state.aiName));
+        } else {
+          const fallback = getDemoState();
+          setState(fallback);
+          setDiaryDays(getInitialDiaryDays(fallback.aiName));
+          setDiaryRows(getInitialCashflowRows(fallback.aiName));
+        }
+      } catch (err) {
+        console.warn('Failed to load state from API, using fallback:', err);
+        const fallback = getDemoState();
+        setState(fallback);
+        setDiaryDays(getInitialDiaryDays(fallback.aiName));
+        setDiaryRows(getInitialCashflowRows(fallback.aiName));
+      }
+    };
+
+    loadState();
 
     return () => clearInterval(timer);
   }, []);
@@ -234,8 +255,29 @@ export default function HomePage() {
 
   const isSleeping = state?.trangThaiAi === 'DANG_NGU';
 
-  // Reset / Create new AI
-  const handleResetAI = () => {
+  // Reset / Create new AI via POST /api/lives
+  const handleResetAI = async () => {
+    try {
+      const res = await fetch('/api/lives', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'PHA_SAN' }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      if (data.state) {
+        setState(data.state);
+        setDiaryDays(getInitialDiaryDays(data.state.aiName));
+        setDiaryRows(getInitialCashflowRows(data.state.aiName));
+        setSelectedPerson(null);
+        setShowResetConfirm(false);
+        showToast(`Đã khởi tạo AI CEO mới: ${data.state.aiName} (${data.state.companyName})`);
+        return;
+      }
+    } catch (err) {
+      console.warn('Failed to create new AI life via API, fallback to local reset:', err);
+    }
+
     const newState = resetDemoState();
     setState(newState);
     setDiaryDays(getInitialDiaryDays(newState.aiName));

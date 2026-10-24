@@ -139,9 +139,10 @@ export const PERSONALITY_POOL = [
   'Hào phóng — thường xuyên tăng lương, thưởng, nhân viên vui nhưng tốn tiền',
 ];
 
-// --- Vietnamese name pool ---
+// --- Name pool ---
 export const NAME_POOL = [
-  'Yuki'
+  'Yuki', 'Minh', 'Khoa', 'Bảo', 'Phong', 'Tuấn', 'Đức', 'Long',
+  'Linh', 'Thảo', 'Ngọc', 'Trang', 'Vy',
 ];
 
 export const COMPANY_NAME_POOL = [
