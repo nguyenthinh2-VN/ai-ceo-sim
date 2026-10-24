@@ -198,6 +198,30 @@ export interface TickData {
   createdAt: string;
 }
 
+export interface DiaryRow {
+  id: string;
+  week: number;
+  content: string;
+  category: 'DOANH_THU' | 'CHI_PHI' | 'NHAN_SU' | 'VAN_HANH';
+  amount: number;
+  balanceAfter: number;
+  statusText: string;
+  statusType: 'success' | 'running' | 'stopped' | 'info';
+  time: string;
+}
+
+export interface DiaryEntryItem {
+  id: string;
+  time: string;
+  text: string;
+}
+
+export interface DiaryDayGroup {
+  date: string;
+  dayLabel: string;
+  logs: DiaryEntryItem[];
+}
+
 export interface LifeData {
   id: string;
   aiName: string;
