@@ -6,32 +6,25 @@ import { formatVietnameseTime } from '@/lib/format';
 interface StatusBarProps {
   isSleeping: boolean;
   currentTime: Date | null;
-  onToggleAiStatus: () => void;
 }
 
 export function StatusBar({
   isSleeping,
   currentTime,
-  onToggleAiStatus,
 }: StatusBarProps) {
   return (
     <>
       {/* Status Bar Attached to Desk Bottom */}
       <div className="bg-white border border-[#D6C7AF] border-t-0 p-2.5 sm:p-3.5 px-3 sm:px-6 flex items-center gap-2 sm:gap-3 text-[11px] sm:text-sm text-stone-800 flex-wrap">
-        <button
-          onClick={onToggleAiStatus}
-          className="flex items-center gap-2 hover:opacity-80 transition cursor-pointer select-none"
-          title="Bấm để chuyển đổi Làm việc / Nghỉ ngơi"
-        >
+        <div className="flex items-center gap-2 select-none">
           <span
             className={`w-2 h-2 rounded-full ${isSleeping ? 'bg-purple-500 animate-pulse' : 'bg-emerald-500 animate-pulse'
               }`}
           />
-          <span className="font-bold underline decoration-dotted decoration-stone-300">
+          <span className="font-bold text-stone-800">
             {isSleeping ? 'Đang nghỉ ngơi / nghỉ giải lao' : 'Đang làm việc'}
           </span>
-          <span className="text-[10px] text-stone-400">({isSleeping ? 'Bấm làm' : 'Bấm nghỉ'})</span>
-        </button>
+        </div>
         <span className="text-stone-300">·</span>
         <span className="font-mono text-stone-600">
           {currentTime ? formatVietnameseTime(currentTime) : '--:--:--'} giờ Việt Nam

@@ -5,16 +5,12 @@ import { TerminalMonitor } from './TerminalMonitor';
 
 interface DeskHeroProps {
   isSleeping: boolean;
-  isSimulating: boolean;
-  onFastForward: () => void;
-  onToggleAiStatus: () => void;
+  aiName: string;
 }
 
 export function DeskHero({
   isSleeping,
-  isSimulating,
-  onFastForward,
-  onToggleAiStatus,
+  aiName,
 }: DeskHeroProps) {
   return (
     <div className="relative bg-[#E8DCC8] rounded-t-2xl pt-4 sm:pt-8 px-3 sm:px-8 border border-[#D6C7AF] border-b-0 shadow-sm overflow-visible">
@@ -34,7 +30,7 @@ export function DeskHero({
           <div className="w-[105px] h-[95px] sm:w-[230px] sm:h-[195px] flex items-end justify-center relative">
             <img
               src={isSleeping ? '/character/sleep.png' : '/character/cat.png'}
-              alt={isSleeping ? 'Yuki đang nghỉ ngơi / nghỉ giải lao' : 'Yuki AI CEO'}
+              alt={isSleeping ? `${aiName} đang nghỉ ngơi / nghỉ giải lao` : `${aiName} AI CEO`}
               style={{ mixBlendMode: 'multiply' }}
               className="max-h-full max-w-full object-contain object-bottom z-10 transition-all duration-300"
             />
@@ -51,9 +47,7 @@ export function DeskHero({
         {/* Right Column: PC Monitor on stand + Badge + Mug */}
         <TerminalMonitor
           isSleeping={isSleeping}
-          isSimulating={isSimulating}
-          onFastForward={onFastForward}
-          onToggleAiStatus={onToggleAiStatus}
+          aiName={aiName}
         />
       </div>
 

@@ -141,8 +141,7 @@ export const PERSONALITY_POOL = [
 
 // --- Vietnamese name pool ---
 export const NAME_POOL = [
-  'Minh', 'Hùng', 'Tuấn', 'Đức', 'Phong', 'Khoa', 'Bảo', 'Long',
-  'Lan', 'Mai', 'Hà', 'Linh', 'Thảo', 'Ngọc', 'Trang', 'Vy',
+  'Yuki'
 ];
 
 export const COMPANY_NAME_POOL = [

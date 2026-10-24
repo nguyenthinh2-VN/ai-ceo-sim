@@ -5,37 +5,35 @@ import React, { useState, useEffect, useMemo } from 'react';
 // Pool of thoughts when working
 const WORK_LOG_POOL = [
   '14:00 Lại vừa nhắm trúng món TTTKKCN siêu hót, quyết định xếp vào hàng chờ dựng web và quay video thử nghiệm xem sao. Tôi chọn sản phẩm mới TTTKKCN, đưa vào hàng chờ',
-  '14:30 Kiểm tra số dư: tiền mặt an toàn 382.500.000đ, đủ runway hơn 5 tháng vận hành.',
+  '14:30 Kiểm tra số dư: tiền mặt an toàn 385.000.000đ, đủ runway hơn 5 tháng vận hành.',
   '15:15 Khách hàng HD-002 xem demo quản lý kho và phản hồi rất tích cực, chuẩn bị nghiệm thu.',
   '16:00 Nhắc nhở Lan và Hùng giữ sức khỏe, không cày đêm quá sức, duy trì năng lượng cao.',
   '16:45 Đang nghiên cứu mở rộng dịch vụ cloud & AI cho các doanh nghiệp vừa và nhỏ.',
 ];
 
-// Pool of thoughts when resting / taking a break
-const REST_LOG_POOL = [
-  'Đang nghỉ ngơi / nghỉ giải lao. Zzz...',
-  'Đang nghỉ ngơi / nghỉ giải lao. Yuki đang ngủ nạp lại năng lượng sau giờ làm việc.',
-  'Đang nghỉ ngơi / nghỉ giải lao. Tạm dừng code, chờ đến 18:00 xem lại tiến độ.',
-];
-
 interface TerminalMonitorProps {
   isSleeping: boolean;
-  isSimulating: boolean;
-  onFastForward: () => void;
-  onToggleAiStatus: () => void;
+  aiName: string;
 }
 
 export function TerminalMonitor({
   isSleeping,
-  isSimulating,
-  onFastForward,
-  onToggleAiStatus,
+  aiName,
 }: TerminalMonitorProps) {
   const [displayedText, setDisplayedText] = useState('');
   const [logIndex, setLogIndex] = useState(0);
   const [isFading, setIsFading] = useState(false);
 
-  const activePool = isSleeping ? REST_LOG_POOL : WORK_LOG_POOL;
+  const restLogs = useMemo(
+    () => [
+      'Đang nghỉ ngơi / nghỉ giải lao. Zzz...',
+      `Đang nghỉ ngơi / nghỉ giải lao. ${aiName} đang ngủ nạp lại năng lượng sau giờ làm việc.`,
+      'Đang nghỉ ngơi / nghỉ giải lao. Tạm dừng code, chờ đến 18:00 xem lại tiến độ.',
+    ],
+    [aiName]
+  );
+
+  const activePool = isSleeping ? restLogs : WORK_LOG_POOL;
 
   // Typewriter effect
   useEffect(() => {
@@ -79,43 +77,39 @@ export function TerminalMonitor({
           <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[#FFBD2E]" />
           <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[#27C93F]" />
           <span className="text-[9px] sm:text-[11px] font-mono text-stone-400 ml-1.5 sm:ml-2 truncate">
-            terminal — yuki@ceo {isSleeping ? '[NGHỈ NGƠI]' : '[WORK]'}
+            terminal — {aiName.toLowerCase()}@ceo {isSleeping ? '[NGHỈ NGƠI]' : '[WORK]'}
           </span>
         </div>
 
         {/* Monitor Screen: TYPEWRITER EFFECT */}
         <div className="bg-[#15171D] rounded sm:rounded-lg p-2 sm:p-3.5 pb-7 sm:pb-8 min-h-[95px] sm:min-h-[140px] font-mono text-[11px] sm:text-[13px] text-[#A6AFBE] relative flex flex-col justify-start">
           <div
-            className={`font-bold mb-0.5 sm:mb-1 text-xs sm:text-sm ${
-              isSleeping ? 'text-purple-400' : 'text-emerald-400'
-            }`}
+            className={`font-bold mb-0.5 sm:mb-1 text-xs sm:text-sm ${isSleeping ? 'text-purple-400' : 'text-emerald-400'
+              }`}
           >
             {isSleeping ? '💤 >' : '>'}
           </div>
           <div
-            className={`transition-opacity duration-300 leading-snug sm:leading-relaxed ${
-              isFading ? 'opacity-0' : 'opacity-100'
-            }`}
+            className={`transition-opacity duration-300 leading-snug sm:leading-relaxed ${isFading ? 'opacity-0' : 'opacity-100'
+              }`}
           >
             <span className={isSleeping ? 'text-purple-200 font-medium' : ''}>
               {displayedText || (isSleeping ? 'Đang nghỉ ngơi / nghỉ giải lao...' : 'Đang xử lý công việc...')}
             </span>
             <span
-              className={`inline-block w-1.5 sm:w-2 h-3.5 sm:h-4 animate-pulse align-middle ml-1 ${
-                isSleeping ? 'bg-purple-400' : 'bg-emerald-400'
-              }`}
+              className={`inline-block w-1.5 sm:w-2 h-3.5 sm:h-4 animate-pulse align-middle ml-1 ${isSleeping ? 'bg-purple-400' : 'bg-emerald-400'
+                }`}
             />
           </div>
 
-          {/* Fast-forward / Wakeup button */}
-          <button
-            onClick={isSleeping ? onToggleAiStatus : onFastForward}
-            disabled={isSimulating}
-            className="absolute bottom-1.5 right-1.5 sm:bottom-2.5 sm:right-2.5 z-20 bg-white/10 hover:bg-white/20 border border-white/15 text-white/80 hover:text-white rounded px-1.5 sm:px-2.5 py-0.5 sm:py-1 text-[10px] sm:text-xs font-mono font-medium transition flex items-center gap-1 backdrop-blur cursor-pointer"
-          >
-            <span>{isSimulating ? '⏳' : isSleeping ? '⚡' : '⏭️'}</span>
-            <span>{isSleeping ? 'Đánh thức' : 'Tua tuần'}</span>
-          </button>
+          {/* Read-only status indicator */}
+          <div className="absolute bottom-1.5 right-1.5 sm:bottom-2.5 sm:right-2.5 z-20 text-[10px] sm:text-xs font-mono font-medium text-stone-400 select-none flex items-center gap-1.5 bg-black/40 border border-white/10 px-2 py-0.5 rounded">
+            <span
+              className={`w-1.5 h-1.5 rounded-full ${isSleeping ? 'bg-purple-400' : 'bg-emerald-400 animate-pulse'
+                }`}
+            />
+            <span>{isSleeping ? 'Đang ngủ' : 'Đang làm'}</span>
+          </div>
         </div>
       </div>
 

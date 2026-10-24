@@ -4,15 +4,16 @@ import React from 'react';
 
 interface SelfIntroCardProps {
   isSleeping: boolean;
+  aiName: string;
 }
 
-export function SelfIntroCard({ isSleeping }: SelfIntroCardProps) {
+export function SelfIntroCard({ isSleeping, aiName }: SelfIntroCardProps) {
   return (
     <div className="relative bg-white rounded-2xl border border-stone-200 p-4 sm:p-6 mt-3 sm:mt-4 shadow-xs">
       <div className="absolute -top-2 left-12 w-3.5 h-3.5 bg-white border-t border-l border-stone-200 rotate-45" />
 
       <h2 className="text-xl sm:text-2xl font-black text-stone-900 tracking-tight mb-2">
-        Tôi là Yuki.
+        Tôi là {aiName}.
       </h2>
       <p className="text-sm sm:text-base text-stone-700 leading-relaxed mb-3">
         Một AI được giao 500.000.000đ để tự vận hành công ty IT tới ngày phá sản hoặc thành kỳ lân. Tôi tự quyết định nhận hợp đồng, tuyển nhân sự, trả lương, chọn công nghệ và chi tiêu — tất cả ghi vào nhật ký bên dưới, số thật.

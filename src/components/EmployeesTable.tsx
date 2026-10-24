@@ -6,11 +6,13 @@ import { formatVND } from '@/lib/format';
 
 interface EmployeesTableProps {
   employees: Employee[];
+  aiName: string;
   onSelectEmployee: (emp: Employee) => void;
 }
 
 export function EmployeesTable({
   employees,
+  aiName,
   onSelectEmployee,
 }: EmployeesTableProps) {
   const totalSalary = employees.reduce((sum, e) => sum + e.salary, 0);
@@ -21,7 +23,7 @@ export function EmployeesTable({
         <div>
           <h3 className="text-base font-bold text-stone-900">Đội ngũ nhân sự công ty</h3>
           <p className="text-xs text-stone-500 mt-0.5">
-            Nhân viên do CEO Yuki trực tiếp quản lý và phân công công việc
+            Nhân viên do CEO {aiName} trực tiếp quản lý và phân công công việc
           </p>
         </div>
         <span className="text-xs font-mono font-bold text-stone-700">

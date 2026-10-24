@@ -25,7 +25,7 @@ export function LiveActivityStrip({
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        {/* CEO Yuki Card */}
+        {/* CEO Card */}
         <div
           onClick={() => onSelectPerson('CEO')}
           className="p-3.5 rounded-xl bg-white border border-stone-200/90 shadow-xs hover:border-amber-300 hover:shadow-sm transition cursor-pointer"

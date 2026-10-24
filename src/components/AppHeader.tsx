@@ -6,14 +6,12 @@ import { formatVietnameseTime } from '@/lib/format';
 interface AppHeaderProps {
   isSleeping: boolean;
   currentTime: Date | null;
-  onToggleAiStatus: () => void;
   onResetClick: () => void;
 }
 
 export function AppHeader({
   isSleeping,
   currentTime,
-  onToggleAiStatus,
   onResetClick,
 }: AppHeaderProps) {
   return (
@@ -40,20 +38,14 @@ export function AppHeader({
             </div>
           </div>
 
-          {/* Quick Toggle Work / Rest mode */}
-          <button
-            onClick={onToggleAiStatus}
-            title="Bấm để chuyển đổi giữa Làm việc và Nghỉ ngơi"
-            className={`text-xs font-semibold px-2.5 sm:px-3 py-1.5 rounded-md border transition flex items-center gap-1.5 cursor-pointer ${
-              isSleeping
-                ? 'bg-purple-100 text-purple-800 border-purple-300 hover:bg-purple-200'
-                : 'bg-white text-stone-700 border-stone-300 hover:border-stone-400'
-            }`}
-          >
-            <span>{isSleeping ? '⚡' : '🌙'}</span>
-            <span className="hidden xs:inline">{isSleeping ? 'Bấm làm việc' : 'Bấm nghỉ ngơi'}</span>
-            <span className="xs:hidden">{isSleeping ? 'Làm' : 'Nghỉ'}</span>
-          </button>
+          {/* Read-only status indicator */}
+          <div className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-md border border-stone-200/80 bg-white/80 text-stone-700 text-xs font-semibold select-none">
+            <span
+              className={`w-2 h-2 rounded-full ${isSleeping ? 'bg-purple-500' : 'bg-emerald-500 animate-pulse'
+                }`}
+            />
+            <span>{isSleeping ? 'Đang ngủ' : 'Đang làm'}</span>
+          </div>
 
           <button
             onClick={onResetClick}

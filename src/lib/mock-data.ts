@@ -92,13 +92,17 @@ const demoContracts: Contract[] = [
     penaltyPaid: 0,
     clientReviewWeeks: 1,
   },
+  // Phương án chọn cho HD-003: (a) Đã hoàn thành và đã thu đủ 100% (25.000.000đ)
+  // remainingPayment = 0, doanhThuTichLuy = 80.500.000đ (45tr + 10.5tr + 25tr),
+  // tienMat = 385.000.000đ (500tr vốn + 80.5tr doanh thu - 195.5tr chi phí),
+  // phần tử cuối lichSuTien = 385.000.000đ.
   {
     id: 'HD-003',
     name: 'Landing page cho tiệm cafe',
     clientType: 'Cá nhân/Shop',
     value: 25_000_000,
-    advancePaid: 7_500_000,
-    remainingPayment: 17_500_000,
+    advancePaid: 25_000_000,
+    remainingPayment: 0,
     progress: 100,
     status: 'HOAN_THANH',
     weeksEstimate: 2,
@@ -155,10 +159,16 @@ const demoDiary: DiaryEntry[] = [
   },
 ];
 
-export function createDemoState(): GameState {
-  const aiName = 'Yuki';
+function randomPickExcept<T>(arr: readonly T[], except?: T): T {
+  const filtered = except ? arr.filter((x) => x !== except) : arr;
+  const pool = filtered.length > 0 ? filtered : arr;
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
+export function createDemoState(prevPersonality?: string, prevName?: string): GameState {
+  const aiName = randomPickExcept(NAME_POOL, prevName);
   const companyName = randomPick(COMPANY_NAME_POOL);
-  const personality = randomPick(PERSONALITY_POOL);
+  const personality = randomPickExcept(PERSONALITY_POOL, prevPersonality);
 
   return {
     aiName,
@@ -167,9 +177,10 @@ export function createDemoState(): GameState {
     lifeId: generateId(),
     startedAt: new Date(Date.now() - 35 * 86400000).toISOString(), // started 35 days ago
 
-    tienMat: 382_500_000,
+    // Tiền mặt = 500.000.000 + doanhThuTichLuy (80.500.000đ) - chiPhiTichLuy (195.500.000đ) = 385.000.000đ
+    tienMat: 385_000_000,
     noVay: 0,
-    doanhThuTichLuy: 78_000_000,
+    doanhThuTichLuy: 80_500_000,
     chiPhiTichLuy: 195_500_000,
     doanhThuThangNay: 45_000_000,
     chiPhiThangNay: 73_000_000,
@@ -186,9 +197,11 @@ export function createDemoState(): GameState {
 
     vanPhong: 'Làm tại nhà',
 
+    // Giờ tuần này cộng lại = 52 + 8 + 49 + 7 + 28 + 24 = 168 giờ
     gioSongTuanNay: { lamViec: 52, hop: 8, ngu: 49, nghiTrua: 7, giaiLao: 28, giaiTri: 24 },
+    // Giờ tích lũy = 5 tuần x 168 = 840 giờ (230 + 40 + 265 + 35 + 115 + 155 = 840)
     gioSongTichLuy: { lamViec: 230, hop: 40, ngu: 265, nghiTrua: 35, giaiLao: 115, giaiTri: 155 },
-    lichSuTien: [500_000_000, 488_000_000, 465_000_000, 420_000_000, 382_500_000],
+    lichSuTien: [500_000_000, 488_000_000, 465_000_000, 420_000_000, 385_000_000],
 
     nhatKy: demoDiary,
 
@@ -217,6 +230,8 @@ export function getDemoState(): GameState {
 }
 
 export function resetDemoState(): GameState {
-  currentDemoState = createDemoState();
+  const prevPersonality = currentDemoState?.personality;
+  const prevName = currentDemoState?.aiName;
+  currentDemoState = createDemoState(prevPersonality, prevName);
   return currentDemoState;
 }

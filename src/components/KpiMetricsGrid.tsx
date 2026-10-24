@@ -70,7 +70,7 @@ export function KpiMetricsGrid({ state }: KpiMetricsGridProps) {
           {state.nhanVien.length + 1}{' '}
           <span className="text-xs font-normal text-stone-500">người</span>
         </div>
-        <div className="kpi-sub">Yuki CEO + {state.nhanVien.length} nhân viên</div>
+        <div className="kpi-sub">{state.aiName} CEO + {state.nhanVien.length} nhân viên</div>
       </div>
 
       {/* Office */}
