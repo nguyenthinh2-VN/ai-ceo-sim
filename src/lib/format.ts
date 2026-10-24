@@ -16,19 +16,11 @@ export function formatVND(amount: number): string {
 }
 
 /**
- * Format a number as compact VND for display
- * e.g. 500000000 -> "500tr"
+ * Format a number as VND for display (never abbreviates as "tr")
+ * e.g. 45000000 -> "45.000.000đ"
  */
 export function formatVNDCompact(amount: number): string {
-  if (isNaN(amount)) return '0đ';
-  const abs = Math.abs(amount);
-  const sign = amount < 0 ? '-' : '';
-  if (abs >= 1_000_000_000) {
-    return `${sign}${(abs / 1_000_000_000).toFixed(1)} tỷ`;
-  }
-  if (abs >= 1_000_000) {
-    return `${sign}${(abs / 1_000_000).toFixed(0)} tr`;
-  }
+  if (isNaN(amount) || amount === null || amount === undefined) return '0đ';
   return formatVND(amount);
 }
 
