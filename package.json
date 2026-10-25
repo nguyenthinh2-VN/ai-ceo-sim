@@ -9,6 +9,8 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "tsx scripts/test-engine.ts",
+    "test:realtime": "tsx scripts/test-realtime.ts",
+    "check:llm": "tsx scripts/check-llm.ts",
     "tick": "npx tsx scripts/run-tick.ts"
   },
   "dependencies": {

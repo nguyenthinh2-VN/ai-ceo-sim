@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useSyncExternalStore } from 'react';
 import { GameState, Employee, DiaryRow, DiaryDayGroup, DiaryEntryItem } from '@/lib/types';
-import { getDemoState, resetDemoState } from '@/lib/mock-data';
+import { resetDemoState } from '@/lib/mock-data';
 import { getStartupDay } from '@/lib/format';
+import { useRealtimeSimulation } from '@/hooks/useRealtimeSimulation';
 
 import { AppHeader } from '@/components/AppHeader';
 import { DeskHero } from '@/components/DeskHero';
@@ -126,57 +127,83 @@ export function buildCashflowRowsFromState(state: GameState): DiaryRow[] {
   return rows;
 }
 
+/**
+ * Đồng hồ thực, nhích mỗi giây.
+ *
+ * Dùng useSyncExternalStore thay vì setInterval + setState trong effect:
+ * React 19 coi việc gọi setState đồng bộ trong effect là lỗi (gây render
+ * dây chuyền), còn đây đúng bản chất "đăng ký theo dõi một nguồn bên ngoài".
+ *
+ * getSnapshot phải trả về cùng một tham chiếu khi giá trị chưa đổi, nếu
+ * không React sẽ lặp vô hạn — nên cache đối tượng Date theo từng giây.
+ */
+let cachedSecond = -1;
+let cachedDate: Date | null = null;
+
+function useCurrentTime(): Date | null {
+  const subscribe = React.useCallback((onChange: () => void) => {
+    const timer = setInterval(onChange, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // getServerSnapshot trả null: server không biết giờ máy khách, và trả
+  // cùng giá trị ở lần render đầu để không lệch hydration.
+  return useSyncExternalStore(subscribe, getClockSnapshot, () => null);
+}
+
+function getClockSnapshot(): Date {
+  const second = Math.floor(Date.now() / 1000);
+  if (second !== cachedSecond || cachedDate === null) {
+    cachedSecond = second;
+    cachedDate = new Date();
+  }
+  return cachedDate;
+}
+
 export default function HomePage() {
-  const [state, setState] = useState<GameState | null>(null);
-  const [currentTime, setCurrentTime] = useState<Date | null>(null);
   const [selectedPerson, setSelectedPerson] = useState<Employee | 'CEO' | null>(null);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [activeTab, setActiveTab] = useState<'diary' | 'cashflow' | 'contracts' | 'employees'>('diary');
   const [notification, setNotification] = useState<string | null>(null);
 
-  const [diaryDays, setDiaryDays] = useState<DiaryDayGroup[]>([]);
-  const [diaryRows, setDiaryRows] = useState<DiaryRow[]>([]);
+  // Nguồn state duy nhất: WebSocket realtime, tự hạ cấp sang polling khi cần.
+  const { state, connectionStatus, lastEvent, applyState } =
+    useRealtimeSimulation();
 
-  // Initialize state via /api/state
-  useEffect(() => {
-    setCurrentTime(new Date());
-    const timer = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 1000);
+  const currentTime = useCurrentTime();
 
-    const loadState = async () => {
-      try {
-        const res = await fetch('/api/state');
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
-        if (data.state) {
-          setState(data.state);
-          setDiaryDays(buildDiaryDaysFromState(data.state));
-          setDiaryRows(buildCashflowRowsFromState(data.state));
-        } else {
-          const fallback = getDemoState();
-          setState(fallback);
-          setDiaryDays(buildDiaryDaysFromState(fallback));
-          setDiaryRows(buildCashflowRowsFromState(fallback));
-        }
-      } catch (err) {
-        console.warn('Failed to load state from API, using fallback:', err);
-        const fallback = getDemoState();
-        setState(fallback);
-        setDiaryDays(buildDiaryDaysFromState(fallback));
-        setDiaryRows(buildCashflowRowsFromState(fallback));
-      }
-    };
+  // Nhật ký và dòng tiền là dữ liệu DẪN XUẤT từ state — tính thẳng trong
+  // lúc render thay vì đồng bộ qua state riêng. Giữ chúng trong useState
+  // rồi cập nhật bằng effect sẽ tạo 2 nguồn sự thật dễ lệch nhau.
+  const diaryDays = useMemo(
+    () => (state ? buildDiaryDaysFromState(state) : []),
+    [state]
+  );
+  const diaryRows = useMemo(
+    () => (state ? buildCashflowRowsFromState(state) : []),
+    [state]
+  );
 
-    loadState();
-
-    return () => clearInterval(timer);
-  }, []);
-
-  const showToast = (msg: string) => {
+  const showToast = React.useCallback((msg: string) => {
     setNotification(msg);
     setTimeout(() => setNotification(null), 3000);
-  };
+  }, []);
+
+  // Toast khi AI vừa có quyết định mới qua WebSocket.
+  // Bỏ qua sự kiện đầu tiên để không bắn thông báo ngay lúc vừa mở trang.
+  const isFirstEventRef = useRef(true);
+  useEffect(() => {
+    if (!lastEvent) return;
+    if (isFirstEventRef.current) {
+      isFirstEventRef.current = false;
+      return;
+    }
+    showToast(
+      lastEvent.type === 'tick'
+        ? '⚡ AI vừa có quyết định mới!'
+        : '🔄 Đời AI vừa thay đổi trạng thái.'
+    );
+  }, [lastEvent, showToast]);
 
   const isSleeping = state?.trangThaiAi === 'DANG_NGU';
 
@@ -191,9 +218,7 @@ export default function HomePage() {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       if (data.state) {
-        setState(data.state);
-        setDiaryDays(buildDiaryDaysFromState(data.state));
-        setDiaryRows(buildCashflowRowsFromState(data.state));
+        applyState(data.state);
         setSelectedPerson(null);
         setShowResetConfirm(false);
         showToast(`Đã khởi tạo AI CEO mới: ${data.state.aiName} (${data.state.companyName})`);
@@ -204,9 +229,7 @@ export default function HomePage() {
     }
 
     const newState = resetDemoState();
-    setState(newState);
-    setDiaryDays(buildDiaryDaysFromState(newState));
-    setDiaryRows(buildCashflowRowsFromState(newState));
+    applyState(newState);
     setSelectedPerson(null);
     setShowResetConfirm(false);
     showToast(`Đã khởi tạo AI CEO mới: ${newState.aiName} (${newState.companyName})`);
@@ -256,6 +279,7 @@ export default function HomePage() {
         <StatusBar
           isSleeping={isSleeping}
           currentTime={currentTime}
+          connectionStatus={connectionStatus}
         />
 
         {/* Self-Introduction Card ("Tôi là {aiName}.") */}

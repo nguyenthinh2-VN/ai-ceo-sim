@@ -4,7 +4,7 @@
 // ============================================================
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { StateRepository, LifeData, TickData, GameState } from '../types';
+import { StateRepository, LifeData, TickData, GameState, DiaryEntry, AiAction } from '../types';
 
 interface DbLifeRow {
   id: string;
@@ -24,8 +24,9 @@ interface DbTickRow {
   week: number;
   plan: string | null;
   reason: string | null;
-  diary: any;
-  actions: any;
+  // Cột jsonb: kiểu thật do DB quyết định lúc ghi, không được tin vào `select *`.
+  diary: DiaryEntry[] | null;
+  actions: AiAction[] | null;
   state: GameState;
   created_at: string;
 }
@@ -182,7 +183,13 @@ export class SupabaseStateRepository implements StateRepository {
     status: 'SONG' | 'PHA_SAN',
     summary?: LifeData['summary']
   ): Promise<void> {
-    const updatePayload: Record<string, any> = {
+    // Kiểu tường minh theo đúng các cột sẽ ghi, thay vì Record<string, any>:
+    // một khoá gõ sai tên sẽ lộ ra ngay ở đây thay vì âm thầm thành cột mới.
+    const updatePayload: {
+      status: 'SONG' | 'PHA_SAN';
+      updated_at: string;
+      summary?: LifeData['summary'];
+    } = {
       status,
       updated_at: new Date().toISOString(),
     };

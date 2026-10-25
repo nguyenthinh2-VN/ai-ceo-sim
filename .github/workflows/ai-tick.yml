@@ -1,0 +1,78 @@
+name: AI CEO Tick
+
+# Nhịp tim của thế giới mô phỏng.
+#
+# Vì sao không dùng Vercel Cron cho việc này:
+# Gói Hobby của Vercel giới hạn cron chạy tối đa 1 lần/ngày, và biểu thức
+# dày hơn sẽ làm HỎNG DEPLOY chứ không phải chỉ chạy chậm. Mà mô phỏng thì
+# cần tick mỗi 15 phút để web "sống". GitHub Actions cho chạy 15 phút/lần
+# miễn phí nên gánh phần này; cron trong vercel.json chỉ là lưới an toàn
+# phòng khi workflow bị tắt.
+#
+# Cần cấu hình 2 secrets trong GitHub repo (Settings → Secrets → Actions):
+#   TICK_URL       — URL production, ví dụ https://ai-ceo-sim.vercel.app
+#   AI_TICK_SECRET — phải TRÙNG với biến cùng tên trên Vercel
+
+on:
+  schedule:
+    # Mỗi 15 phút. GitHub có thể trễ vài phút khi tải cao — chấp nhận được,
+    # vì engine tự cộng dồn số giờ đã trôi qua kể từ lượt tick trước.
+    - cron: '*/15 * * * *'
+  # Cho phép bấm chạy tay từ tab Actions để test.
+  workflow_dispatch:
+
+# Chỉ cần 1 lượt tick chạy tại một thời điểm. Hai lượt chạy chồng nhau sẽ
+# cùng đọc một state rồi cùng ghi, gây nhân đôi tiến độ.
+concurrency:
+  group: ai-ceo-tick
+  cancel-in-progress: false
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Gọi API tick
+        env:
+          TICK_URL: ${{ secrets.TICK_URL }}
+          AI_TICK_SECRET: ${{ secrets.AI_TICK_SECRET }}
+        run: |
+          if [ -z "$TICK_URL" ] || [ -z "$AI_TICK_SECRET" ]; then
+            echo "❌ Thiếu secret TICK_URL hoặc AI_TICK_SECRET trong GitHub repo."
+            exit 1
+          fi
+
+          # --fail-with-body: HTTP 4xx/5xx phải làm job đỏ để còn thấy lỗi
+          # trong tab Actions, thay vì âm thầm "xanh" mà chẳng tick nào chạy.
+          response=$(curl -sS --fail-with-body --max-time 90 \
+            -X POST "$TICK_URL/api/ai-tick" \
+            -H "Authorization: Bearer $AI_TICK_SECRET" \
+            -H "Content-Type: application/json" \
+            -d '{}')
+
+          echo "Phản hồi:"
+          echo "$response" | head -c 2000
+
+          # In ra vài chỉ số để đọc log là biết thế giới có tiến không.
+          echo ""
+          echo "$response" | node -e "
+            let raw = '';
+            process.stdin.on('data', (c) => (raw += c));
+            process.stdin.on('end', () => {
+              try {
+                const j = JSON.parse(raw);
+                console.log('--- Tóm tắt lượt tick ---');
+                console.log('Kế hoạch     :', j.tick?.plan ?? '(không có)');
+                console.log('Số giờ tiến  :', j.hoursAdvanced ?? 0);
+                console.log('Tiền mặt     :', (j.state?.tienMat ?? 0).toLocaleString('vi-VN'), 'đ');
+                console.log('Tuần hiện tại:', j.state?.tuanHienTai ?? '?');
+                console.log('Chế độ       :', j.isDemo ? 'Luật tạm (LLM lỗi)' : 'LLM thật');
+                if (j.rejected?.length) {
+                  console.log('Bị từ chối   :', j.rejected.join(' | '));
+                }
+              } catch {
+                console.log('(Không parse được JSON phản hồi)');
+              }
+            });
+          "

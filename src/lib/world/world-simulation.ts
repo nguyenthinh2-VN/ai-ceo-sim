@@ -628,8 +628,12 @@ export class WorldSimulationEngine implements WorldSimulation {
    * Takes exact elapsed hours between now and lastTickAt.
    */
   advanceTime(elapsedHours: number, now: Date): void {
+    // TUYỆT ĐỐI không được đẩy lastTickAt về hiện tại ở đây.
+    // Cron chạy 15 phút/lần luôn cho elapsedHours = 0 (vì floor(0.25h) = 0).
+    // Nếu nhánh này reset mốc thời gian, lần chạy sau lại tính từ hiện tại và
+    // mãi mãi không bao giờ tích lũy đủ 1 giờ — thế giới đứng im vĩnh viễn.
+    // Giữ nguyên mốc cũ để các lần tick ngắn tự cộng dồn thành 1 giờ hoàn chỉnh.
     if (elapsedHours <= 0) {
-      this.state.lastTickAt = now.toISOString();
       return;
     }
 
@@ -796,7 +800,12 @@ export class WorldSimulationEngine implements WorldSimulation {
       }
     }
 
-    this.state.lastTickAt = now.toISOString();
+    // Chỉ nhích mốc thời gian đúng số giờ đã xử lý, giữ lại phần lẻ phút.
+    // Gán thẳng = now sẽ vứt bỏ phần lẻ đó: cron chạy lệch giây mỗi lần một khác
+    // khiến mốc giờ trôi dần, có ngày mất trọn 1 giờ tiến độ.
+    this.state.lastTickAt = new Date(
+      lastTickDate.getTime() + elapsedHours * 3600 * 1000
+    ).toISOString();
   }
 
   /**

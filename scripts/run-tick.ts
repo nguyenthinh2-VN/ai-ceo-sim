@@ -38,7 +38,7 @@ const req = http.request(
         } else {
           console.error('❌ Lỗi khi thực thi Tick:', json);
         }
-      } catch (err) {
+      } catch {
         console.error('❌ Phản hồi không phải JSON:', data);
       }
     });

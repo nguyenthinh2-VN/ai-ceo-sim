@@ -31,8 +31,19 @@ export class AiBrainImpl implements AiBrain {
   /**
    * Determine if an LLM decision is needed this turn
    * (morning, events, critical cash, bankruptcy danger).
+   *
+   * `hoursElapsed` là số giờ game đã trôi qua kể từ lượt tick trước.
+   * Bằng 0 nghĩa là thế giới chưa nhích giờ nào — state y hệt lượt trước,
+   * không có thông tin mới nào để suy nghĩ. Cron 15 phút/lần cho ra 96 lượt
+   * một ngày, trong đó chỉ ~24 lượt có giờ trôi qua; gọi LLM ở 72 lượt còn
+   * lại là trả tiền cho 72 câu trả lời giống nhau.
    */
-  shouldInvokeLlm(state: GameState, now: Date): boolean {
+  shouldInvokeLlm(state: GameState, now: Date, hoursElapsed = 1): boolean {
+    // 0. Không có giờ nào trôi qua thì không có gì mới để quyết định.
+    //    Đặt trước mọi điều kiện khác, kể cả buổi sáng: một lượt cron lúc
+    //    8:00 mà chưa đủ 1 giờ tích lũy vẫn là cùng một thế giới.
+    if (hoursElapsed <= 0) return false;
+
     const vnHour = (now.getUTCHours() + 7) % 24;
 
     // 1. Morning start of work day (8:00 VN)
@@ -67,9 +78,13 @@ export class AiBrainImpl implements AiBrain {
     return false;
   }
 
-  async decide(state: GameState, forceDecision?: boolean): Promise<AiDecision & { isDemo?: boolean }> {
+  async decide(
+    state: GameState,
+    forceDecision?: boolean,
+    hoursElapsed = 1
+  ): Promise<AiDecision & { isDemo?: boolean }> {
     const now = this.clock.now();
-    const needsDecision = forceDecision || this.shouldInvokeLlm(state, now);
+    const needsDecision = forceDecision || this.shouldInvokeLlm(state, now, hoursElapsed);
 
     // If routine hour without new decision needed, continue work schedule without spending API tokens.
     // Trả về actions RỖNG, không phải LAM_VIEC: phát LAM_VIEC mỗi giờ sẽ ghi đè
@@ -80,6 +95,10 @@ export class AiBrainImpl implements AiBrain {
         reason: 'Tiếp tục thực hiện lịch trình làm việc đã đề ra.',
         actions: [],
         diary: [],
+        // Giữ nguyên cờ của lượt trước. Lượt này không có quyết định nào cả,
+        // nên nó không thể là bằng chứng rằng AI đang suy nghĩ thật — gán
+        // false ở đây sẽ gỡ badge "CHẠY THỬ" ngay sau một lượt LLM lỗi.
+        isDemo: state.isDemo,
       };
     }
 
@@ -95,11 +114,12 @@ export class AiBrainImpl implements AiBrain {
       const parseResult = parseAiResponse(rawResponse, state, allowedActions);
 
       return parseResult.decision;
-    } catch (error: any) {
-      console.warn('⚠️ [AiBrain] OpenAI call failed, falling back to RuleBasedBrain:', error.message);
-      const fallback = this.ruleBrain.decide(state, `Lỗi OpenAI: ${error.message}`);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.warn('⚠️ [AiBrain] OpenAI call failed, falling back to RuleBasedBrain:', message);
+      const fallback = this.ruleBrain.decide(state, `Lỗi OpenAI: ${message}`);
       fallback.diary.unshift(
-        `Tuần ${state.tuanHienTai}: [Sự cố LLM] Kết nối OpenAI gặp lỗi (${error.message}). AI tạm thời kích hoạt luật an toàn.`
+        `Tuần ${state.tuanHienTai}: [Sự cố LLM] Kết nối OpenAI gặp lỗi (${message}). AI tạm thời kích hoạt luật an toàn.`
       );
       return fallback;
     }

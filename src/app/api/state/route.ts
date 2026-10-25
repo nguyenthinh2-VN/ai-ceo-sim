@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
 import { getStateRepository } from '@/lib/db';
 import { createFreshInitialState } from '@/lib/mock-data';
+import { handleRouteError } from '@/lib/api/route-error';
 import { LifeData, TickData } from '@/lib/types';
 
-export async function GET(req: Request) {
+export async function GET() {
   try {
-    const _url = new URL(req.url);
     const repo = getStateRepository();
     let currentLife = await repo.getCurrentLife();
 
@@ -69,14 +69,11 @@ export async function GET(req: Request) {
       state: latestTick.state,
       pastLives,
     });
-  } catch (error: any) {
-    if (error?.digest?.startsWith('NEXT_')) {
-      throw error;
-    }
-    console.error('API /api/state GET error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error while fetching game state' },
-      { status: 500 }
+  } catch (error: unknown) {
+    return handleRouteError(
+      error,
+      'GET /api/state',
+      'Internal server error while fetching game state'
     );
   }
 }

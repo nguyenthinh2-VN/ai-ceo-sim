@@ -257,7 +257,12 @@ export interface WorldSimulation {
 }
 
 export interface AiBrain {
-  decide(state: GameState): Promise<AiDecision>;
+  /**
+   * @param forceDecision Bỏ qua mọi điều kiện, buộc gọi LLM ngay.
+   * @param hoursElapsed Số giờ game đã trôi qua kể từ lượt tick trước.
+   *   Bằng 0 nghĩa là thế giới chưa đổi, không có gì mới để quyết định.
+   */
+  decide(state: GameState, forceDecision?: boolean, hoursElapsed?: number): Promise<AiDecision>;
 }
 
 export interface LlmClient {

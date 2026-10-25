@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Image from 'next/image';
 import { TerminalMonitor } from './TerminalMonitor';
 
 interface DeskHeroProps {
@@ -34,13 +35,20 @@ export function DeskHero({
             </div>
           )}
 
-          {/* Character Image slot (Working: cat.png | Resting: sleep.png) */}
+          {/* Character Image slot (Working: cat.png | Resting: sleep.png)
+              Dùng next/image thay vì <img>: ảnh gốc 1373×1146 và 1305×1206 (~2MB)
+              nhưng chỉ hiển thị trong khung 230×195px, nên phải để Next.js nén
+              và chuyển sang WebP theo đúng kích thước thật của khung.
+              `sizes` mô tả bề rộng hiển thị để sinh srcset đúng: khung là
+              105px trên mobile và 230px từ breakpoint sm trở lên. */}
           <div className="w-[105px] h-[95px] sm:w-[230px] sm:h-[195px] flex items-end justify-center relative">
-            <img
+            <Image
               src={isSleeping ? '/character/sleep.png' : '/character/cat.png'}
               alt={isSleeping ? `${aiName} đang nghỉ ngơi / nghỉ giải lao` : `${aiName} AI CEO`}
-              style={{ mixBlendMode: 'multiply' }}
-              className="max-h-full max-w-full object-contain object-bottom z-10 transition-all duration-300"
+              fill
+              sizes="(max-width: 640px) 105px, 230px"
+              style={{ mixBlendMode: 'multiply', objectFit: 'contain', objectPosition: 'bottom' }}
+              className="z-10 transition-all duration-300"
             />
           </div>
 

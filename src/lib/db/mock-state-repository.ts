@@ -3,7 +3,7 @@
 // Used when Supabase env variables are not provided.
 // ============================================================
 
-import { StateRepository, LifeData, TickData, GameState } from '../types';
+import { StateRepository, LifeData, TickData } from '../types';
 import { getDemoState } from '../mock-data';
 
 export class MockStateRepository implements StateRepository {

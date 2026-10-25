@@ -2,17 +2,43 @@
 
 import React from 'react';
 import { formatVietnameseTime } from '@/lib/format';
+import type { ConnectionStatus } from '@/hooks/useRealtimeSimulation';
 
 interface StatusBarProps {
   isSleeping: boolean;
   currentTime: Date | null;
   nextTickTime?: string;
+  connectionStatus?: ConnectionStatus;
 }
+
+/** Nhãn + màu đèn cho từng trạng thái kết nối. */
+const CONNECTION_BADGE: Record<
+  ConnectionStatus,
+  { dot: string; label: string; title: string }
+> = {
+  connected: {
+    dot: 'bg-emerald-500',
+    label: 'Realtime',
+    title: 'Đang nhận quyết định của AI qua WebSocket tức thời',
+  },
+  connecting: {
+    dot: 'bg-amber-400 animate-pulse',
+    label: 'Đang kết nối',
+    title: 'Đang thiết lập kênh WebSocket tới Supabase Realtime',
+  },
+  fallback_polling: {
+    dot: 'bg-amber-500',
+    label: 'Polling 5s',
+    title:
+      'WebSocket không khả dụng — đang tự động đồng bộ mỗi 5 giây để web vẫn chạy',
+  },
+};
 
 export function StatusBar({
   isSleeping,
   currentTime,
   nextTickTime,
+  connectionStatus,
 }: StatusBarProps) {
   // Calculate next 15-minute slot (e.g. 10:15 -> 10:30)
   const calculatedNext = React.useMemo(() => {
@@ -46,6 +72,23 @@ export function StatusBar({
         <span className="text-stone-500">
           Lượt tự chạy tiếp theo: <span className="font-mono font-semibold text-emerald-700">{displayNextTick}</span>
         </span>
+
+        {connectionStatus && (
+          <>
+            <span className="text-stone-300 hidden xs:inline">·</span>
+            <span
+              className="flex items-center gap-1.5 select-none"
+              title={CONNECTION_BADGE[connectionStatus].title}
+            >
+              <span
+                className={`w-2 h-2 rounded-full ${CONNECTION_BADGE[connectionStatus].dot}`}
+              />
+              <span className="text-stone-600">
+                {CONNECTION_BADGE[connectionStatus].label}
+              </span>
+            </span>
+          </>
+        )}
       </div>
 
       {/* Sub-bar with Live Viewers Count */}

@@ -25,7 +25,10 @@ export function createFreshInitialState(
 ): GameState {
   const aiName = customAiName || 'Yuki';
   const companyName = customCompanyName || randomPick(COMPANY_NAME_POOL);
-  const personality = customPersonality || 'Quyết đoán, cẩn trọng dòng tiền & hướng đến sản phẩm';
+  // Bốc tính cách từ pool: mỗi đời AI phải là một con người khác nhau, nếu
+  // không thì mọi lượt chơi đều diễn ra y hệt và tính cách trong prompt chỉ
+  // là trang trí. Truyền vào thì tôn trọng, không thì mới bốc ngẫu nhiên.
+  const personality = customPersonality || randomPick(PERSONALITY_POOL);
   const now = new Date();
 
   return {

@@ -457,6 +457,103 @@ export async function runTests() {
     );
   }
 
+  // TEST 13: Cron 15 phút/lần phải tích lũy được thành giờ
+  console.log('\n--- TEST 13: Tích lũy tick ngắn thành giờ hoàn chỉnh ---');
+  {
+    const state = createFreshInitialState();
+    // Ghim mốc vào 09:00 VN để các giờ cộng dồn rơi vào giờ làm việc.
+    state.lastTickAt = '2026-10-25T02:00:00.000Z';
+    const sim = new WorldSimulationEngine(state);
+    const startTickAt = state.lastTickAt;
+
+    // Mô phỏng 4 lượt cron chạy cách nhau 15 phút. Cả 4 lượt đều có
+    // elapsedHours = 0 vì 15 phút < 1 giờ.
+    for (let i = 1; i <= 4; i++) {
+      const now = new Date(
+        new Date('2026-10-25T02:00:00.000Z').getTime() + i * 15 * 60 * 1000
+      );
+      const elapsed = Math.floor((now.getTime() - new Date(startTickAt).getTime()) / 3_600_000);
+      sim.advanceTime(elapsed, now);
+      const after = await sim.getState();
+      if (i < 4) {
+        assert(
+          after.lastTickAt === startTickAt,
+          `Lượt ${i} (15 phút) giữ nguyên mốc thời gian, không reset về hiện tại`
+        );
+      }
+    }
+
+    // Sau 60 phút, giờ làm việc phải được cộng đúng 1.
+    const finalState = await sim.getState();
+    assert(
+      finalState.gioSongTuanNay.lamViec >= 1 || finalState.gioSongTichLuy.lamViec >= 1,
+      `Sau 4 lượt cron 15 phút, thế giới đã tiến đúng 1 giờ (làm việc=${finalState.gioSongTuanNay.lamViec}h)`
+    );
+    assert(
+      new Date(finalState.lastTickAt!).getTime() >
+        new Date(startTickAt).getTime(),
+      'Mốc thời gian đã nhích lên sau khi đủ 1 giờ'
+    );
+  }
+
+  // TEST 14: Lượt tick rỗng không được gọi LLM
+  //
+  // Cron chạy 15 phút/lần = 96 lượt/ngày, nhưng chỉ ~24 lượt có giờ trôi
+  // qua. Gọi LLM ở những lượt còn lại là trả tiền cho câu trả lời y hệt
+  // lượt trước đó, vì state không đổi một chút nào. Test này đếm số lần
+  // client thật sự bị gọi, để một thay đổi vô ý không thể âm thầm nhân
+  // chi phí LLM lên 4 lần.
+  console.log('\n--- TEST 14: Lượt tick rỗng không gọi LLM (tiết kiệm chi phí) ---');
+  {
+    let callCount = 0;
+    const countingClient: LlmClient = {
+      async chat(): Promise<string> {
+        callCount++;
+        return JSON.stringify({ plan: 'Kế hoạch test', reason: 'Lý do test', actions: [], diary: [] });
+      },
+    };
+
+    const brain = new AiBrainImpl(countingClient);
+    const state = createFreshInitialState();
+    // Năng lượng thấp: điều kiện số 4 trong shouldInvokeLlm sẽ bật, nên
+    // riêng điều kiện "không giờ nào trôi qua" mới chặn được lượt gọi.
+    state.nangLuong = 10;
+    state.tienMat = 5_000_000;
+
+    const beforeCalls = callCount;
+    await brain.decide(state, false, 0);
+    assert(
+      callCount === beforeCalls,
+      'hoursElapsed = 0 thì KHÔNG gọi LLM dù năng lượng và tiền mặt đều ở mức báo động'
+    );
+
+    await brain.decide(state, false, 1);
+    assert(
+      callCount === beforeCalls + 1,
+      'hoursElapsed = 1 thì gọi LLM đúng 1 lần'
+    );
+
+    // Cờ isDemo của lượt bỏ qua phải giữ nguyên giá trị cũ. Nếu nó bị gán
+    // false, badge "CHẠY THỬ" sẽ tắt ngay sau một lượt LLM lỗi, dù chưa có
+    // lượt nào thật sự gọi LLM thành công.
+    const demoState = createFreshInitialState();
+    demoState.isDemo = true;
+    const skipDecision = await brain.decide(demoState, false, 0);
+    assert(
+      skipDecision.isDemo === true,
+      'Lượt bỏ qua giữ nguyên cờ isDemo của lượt trước, không tự gỡ badge CHẠY THỬ'
+    );
+
+    // Ép quyết định phải thắng được cả điều kiện vừa thêm — script thủ công
+    // và test cần chạy được LLM ngay lập tức.
+    const forced = callCount;
+    await brain.decide(state, true, 0);
+    assert(
+      callCount === forced + 1,
+      'forceDecision = true vẫn gọi LLM dù hoursElapsed = 0'
+    );
+  }
+
   console.log(`\n=== TẤT CẢ TEST ĐÃ HOÀN TẤT THÀNH CÔNG: ${passedCount}/${totalCount} TESTS PASSED ===\n`);
 }
 

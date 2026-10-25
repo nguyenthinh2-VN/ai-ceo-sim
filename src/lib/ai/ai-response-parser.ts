@@ -11,6 +11,25 @@ import { formatVND } from '../format';
 /** Định dạng tiền gọn cho thông báo từ chối. */
 const formatShort = (n: number) => formatVND(n);
 
+// --- Chuẩn hóa kiểu từ JSON thô của LLM -----------------------------
+// Trả về `undefined` thay vì ném lỗi: một trường sai kiểu chỉ nên làm hỏng
+// chính hành động đó, không được kéo sập cả phản hồi.
+
+/** Nhận chuỗi khác rỗng, cắt khoảng trắng thừa. */
+function asNonEmptyString(value: unknown): string | undefined {
+  return typeof value === 'string' && value.trim() ? value.trim() : undefined;
+}
+
+/** Nhận số hữu hạn; loại NaN và Infinity vì chúng phá vỡ mọi phép tính tiền. */
+function asFiniteNumber(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+}
+
+/** Nhận mã hành động dạng chuỗi; việc kiểm tra thuộc VALID_ACTION_CODES làm sau. */
+function asActionCode(value: unknown): ActionCode | undefined {
+  return typeof value === 'string' && value.trim() ? (value.trim() as ActionCode) : undefined;
+}
+
 const VALID_ACTION_CODES: Set<ActionCode> = new Set([
   'NGHI_NGOI',
   'LAM_VIEC',
@@ -47,9 +66,17 @@ export function parseAiResponse(
 ): ParseResult {
   const rejected: string[] = [];
 
-  let parsed: any;
+  // LLM trả về JSON tùy ý, không có schema bảo đảm — mọi trường đều được
+  // kiểm tra kiểu trước khi dùng. Ép về Record<string, unknown> để truy cập
+  // được thuộc tính mà không cần `any`, và mọi giá trị vẫn là `unknown`
+  // buộc phải kiểm tra trước khi dùng.
+  let parsed: Record<string, unknown>;
   try {
-    parsed = JSON.parse(rawText);
+    const raw: unknown = JSON.parse(rawText);
+    if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) {
+      throw new Error('Phản hồi không phải một object JSON');
+    }
+    parsed = raw as Record<string, unknown>;
   } catch (err) {
     rejected.push(`Lỗi cú pháp JSON từ LLM: ${(err as Error).message}`);
     return {
@@ -66,28 +93,48 @@ export function parseAiResponse(
   }
 
   // Validate plan and reason
-  const plan = typeof parsed.plan === 'string' && parsed.plan.trim()
-    ? parsed.plan.trim()
+  const rawPlan = parsed.plan;
+  const plan = typeof rawPlan === 'string' && rawPlan.trim()
+    ? rawPlan.trim()
     : 'Tập trung duy trì và thúc đẩy công việc.';
-  const reason = typeof parsed.reason === 'string' && parsed.reason.trim()
-    ? parsed.reason.trim()
+  const rawReason = parsed.reason;
+  const reason = typeof rawReason === 'string' && rawReason.trim()
+    ? rawReason.trim()
     : 'Dựa trên phân tích số liệu tài chính và tiến độ hiện tại.';
 
   // Validate actions
   const validActions: AiAction[] = [];
-  const rawActions = Array.isArray(parsed.actions) ? parsed.actions : [];
+  const rawActions: unknown[] = Array.isArray(parsed.actions) ? parsed.actions : [];
 
-  for (const act of rawActions) {
-    if (!act || typeof act !== 'object' || !act.code) {
-      rejected.push(`Bỏ qua action không hợp lệ: ${JSON.stringify(act)}`);
+  for (const rawAct of rawActions) {
+    if (!rawAct || typeof rawAct !== 'object' || Array.isArray(rawAct)) {
+      rejected.push(`Bỏ qua action không hợp lệ: ${JSON.stringify(rawAct)}`);
       continue;
     }
 
-    const code = act.code as ActionCode;
+    // Chuẩn hóa từng trường về đúng kiểu của AiAction. LLM có thể nhét số,
+    // null hay object lồng vào bất kỳ trường nào, nên không được tin vào một
+    // lần ép kiểu duy nhất cho cả object — sai kiểu ở `contractId` sẽ lọt
+    // xuống tận engine và so sánh chuỗi với số một cách âm thầm.
+    const fields = rawAct as Record<string, unknown>;
+    const code = asActionCode(fields.code);
+    if (!code) {
+      rejected.push(`Bỏ qua action không hợp lệ: ${JSON.stringify(rawAct)}`);
+      continue;
+    }
     if (!VALID_ACTION_CODES.has(code)) {
       rejected.push(`Mã hành động không tồn tại trong luật game: ${code}`);
       continue;
     }
+
+    const act: AiAction = {
+      code,
+      contractId: asNonEmptyString(fields.contractId),
+      employeeId: asNonEmptyString(fields.employeeId),
+      assetName: asNonEmptyString(fields.assetName),
+      amount: asFiniteNumber(fields.amount),
+      productName: asNonEmptyString(fields.productName),
+    };
 
     // Specific domain validations:
     // 1. BAN_GIAO_HOP_DONG: Must have contractId, contract must exist and progress >= 100%
@@ -230,14 +277,7 @@ export function parseAiResponse(
       }
     }
 
-    validActions.push({
-      code,
-      contractId: act.contractId,
-      employeeId: act.employeeId,
-      assetName: act.assetName,
-      amount: act.amount,
-      productName: act.productName,
-    });
+    validActions.push(act);
   }
 
   // Trần hành động: AI chỉ được chọn tối đa 3 hành động/tuần.
@@ -268,11 +308,11 @@ export function parseAiResponse(
 
   // Validate diary entries
   const diary: string[] = [];
-  if (Array.isArray(parsed.diary)) {
-    for (const d of parsed.diary) {
-      if (typeof d === 'string' && d.trim()) {
-        diary.push(d.trim());
-      }
+  const rawDiary: unknown[] = Array.isArray(parsed.diary) ? parsed.diary : [];
+  for (const d of rawDiary) {
+    const line = asNonEmptyString(d);
+    if (line) {
+      diary.push(line);
     }
   }
 

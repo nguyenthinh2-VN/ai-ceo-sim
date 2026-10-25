@@ -2,14 +2,19 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 
-// Pool of thoughts when working
-const WORK_LOG_POOL = [
-  '14:00 Lại vừa nhắm trúng món TTTKKCN siêu hót, quyết định xếp vào hàng chờ dựng web và quay video thử nghiệm xem sao. Tôi chọn sản phẩm mới TTTKKCN, đưa vào hàng chờ',
-  '14:30 Kiểm tra số dư: tiền mặt an toàn 385.000.000đ, đủ runway hơn 5 tháng vận hành.',
-  '15:15 Khách hàng HD-002 xem demo quản lý kho và phản hồi rất tích cực, chuẩn bị nghiệm thu.',
-  '16:00 Nhắc nhở Lan và Hùng giữ sức khỏe, không cày đêm quá sức, duy trì năng lượng cao.',
-  '16:45 Đang nghiên cứu mở rộng dịch vụ cloud & AI cho các doanh nghiệp vừa và nhỏ.',
-];
+/** Nhịp gõ từng ký tự, thời gian giữ nguyên dòng, và thời gian mờ dần. */
+const TYPING_MS = 35;
+const HOLD_MS = 4500;
+const FADE_MS = 350;
+
+/** Pha của dòng terminal: đang gõ -> giữ nguyên -> mờ đi -> sang dòng kế. */
+type TypewriterPhase = 'typing' | 'holding' | 'fading';
+
+interface TypewriterState {
+  index: number;
+  charCount: number;
+  phase: TypewriterPhase;
+}
 
 interface TerminalMonitorProps {
   isSleeping: boolean;
@@ -28,9 +33,11 @@ export function TerminalMonitor({
   latestDiary,
   isDemo = false,
 }: TerminalMonitorProps) {
-  const [displayedText, setDisplayedText] = useState('');
-  const [logIndex, setLogIndex] = useState(0);
-  const [isFading, setIsFading] = useState(false);
+  const [typer, setTyper] = useState<TypewriterState>({
+    index: 0,
+    charCount: 0,
+    phase: 'typing',
+  });
 
   const restLogs = useMemo(
     () => [
@@ -54,33 +61,71 @@ export function TerminalMonitor({
   }, [currentPlan, currentReason, latestDiary]);
 
   const activePool = isSleeping ? restLogs : dynamicWorkLogs;
+  const fullText = activePool[typer.index % activePool.length];
 
-  // Typewriter effect
+  // Nguồn dữ liệu đổi (AI thức/ngủ, kế hoạch mới) thì dòng đang gõ không còn
+  // thuộc pool mới — quay về đầu pool thay vì gõ tiếp một câu của ngữ cảnh cũ.
+  //
+  // Điều chỉnh state ngay trong lúc render là cách React chỉ định cho trường
+  // hợp "state phụ thuộc prop": React render lại ngay, chưa commit, nên người
+  // xem không thấy khung hình trung gian. Dùng useEffect ở đây sẽ tạo thêm
+  // một lượt render thừa và bị eslint coi là setState trong effect.
+  const [poolAtLastReset, setPoolAtLastReset] = useState(activePool);
+  if (poolAtLastReset !== activePool) {
+    setPoolAtLastReset(activePool);
+    setTyper({ index: 0, charCount: 0, phase: 'typing' });
+  }
+
+  // Hiệu ứng máy đánh chữ.
+  //
+  // Một effect duy nhất lo cả ba pha, mỗi pha là một timer riêng và mọi
+  // setState đều nằm TRONG callback của timer — không có setState đồng bộ
+  // trong thân effect, nên không sinh render dây chuyền.
+  //
+  // Bản cũ trả hàm dọn dẹp từ bên trong callback setInterval: React không
+  // bao giờ gọi tới nó, nên timer hẹn giờ cũ vẫn sống sau khi unmount.
   useEffect(() => {
-    const fullText = activePool[logIndex % activePool.length];
-    let charIndex = 0;
-    setDisplayedText('');
-    setIsFading(false);
+    if (typer.phase === 'holding') {
+      const holdTimer = setTimeout(
+        () => setTyper((prev) => ({ ...prev, phase: 'fading' })),
+        HOLD_MS
+      );
+      return () => clearTimeout(holdTimer);
+    }
 
-    const typingTimer = setInterval(() => {
-      if (charIndex < fullText.length) {
-        charIndex++;
-        setDisplayedText(fullText.slice(0, charIndex));
-      } else {
-        clearInterval(typingTimer);
-        const pauseTimer = setTimeout(() => {
-          setIsFading(true);
-          setTimeout(() => {
-            setLogIndex((prev) => (prev + 1) % activePool.length);
-          }, 350);
-        }, 4500);
+    if (typer.phase === 'fading') {
+      const fadeTimer = setTimeout(
+        () =>
+          setTyper((prev) => ({
+            index: (prev.index + 1) % activePool.length,
+            charCount: 0,
+            phase: 'typing',
+          })),
+        FADE_MS
+      );
+      return () => clearTimeout(fadeTimer);
+    }
 
-        return () => clearTimeout(pauseTimer);
-      }
-    }, 35);
+    // phase === 'typing'
+    if (typer.charCount >= fullText.length) {
+      // Gõ xong: chờ một nhịp rồi mới mờ. Đặt trong timer để không setState
+      // đồng bộ ngay trong thân effect.
+      const settleTimer = setTimeout(
+        () => setTyper((prev) => ({ ...prev, phase: 'holding' })),
+        0
+      );
+      return () => clearTimeout(settleTimer);
+    }
 
-    return () => clearInterval(typingTimer);
-  }, [logIndex, isSleeping, activePool]);
+    const typingTimer = setTimeout(
+      () => setTyper((prev) => ({ ...prev, charCount: prev.charCount + 1 })),
+      TYPING_MS
+    );
+    return () => clearTimeout(typingTimer);
+  }, [typer, fullText, activePool.length]);
+
+  const displayedText = fullText.slice(0, typer.charCount);
+  const isFading = typer.phase === 'fading';
 
   return (
     <div className="relative flex flex-col items-center justify-end flex-1 min-w-0 max-w-[430px]">

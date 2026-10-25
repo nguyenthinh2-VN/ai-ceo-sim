@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getStateRepository } from '@/lib/db';
+import { handleRouteError } from '@/lib/api/route-error';
 import { TickData } from '@/lib/types';
 
 export async function GET(req: Request) {
@@ -20,14 +21,11 @@ export async function GET(req: Request) {
 
     const latest = await repo.getLatestTick(currentLife.id);
     return NextResponse.json({ tick: latest });
-  } catch (error: any) {
-    if (error?.digest?.startsWith('NEXT_')) {
-      throw error;
-    }
-    console.error('API /api/ticks GET error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error while fetching ticks' },
-      { status: 500 }
+  } catch (error: unknown) {
+    return handleRouteError(
+      error,
+      'GET /api/ticks',
+      'Internal server error while fetching ticks'
     );
   }
 }
@@ -72,14 +70,11 @@ export async function POST(req: Request) {
       success: true,
       tick,
     });
-  } catch (error: any) {
-    if (error?.digest?.startsWith('NEXT_')) {
-      throw error;
-    }
-    console.error('API /api/ticks POST error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error while saving tick' },
-      { status: 500 }
+  } catch (error: unknown) {
+    return handleRouteError(
+      error,
+      'POST /api/ticks',
+      'Internal server error while saving tick'
     );
   }
 }

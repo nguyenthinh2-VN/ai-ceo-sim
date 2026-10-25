@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getStateRepository } from '@/lib/db';
 import { createFreshInitialState } from '@/lib/mock-data';
+import { handleRouteError } from '@/lib/api/route-error';
 import { LifeData, TickData } from '@/lib/types';
 
 export async function GET() {
@@ -9,14 +10,11 @@ export async function GET() {
     const pastLives = await repo.getPastLives();
     const currentLife = await repo.getCurrentLife();
     return NextResponse.json({ currentLife, pastLives });
-  } catch (error: any) {
-    if (error?.digest?.startsWith('NEXT_')) {
-      throw error;
-    }
-    console.error('API /api/lives GET error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error while fetching lives' },
-      { status: 500 }
+  } catch (error: unknown) {
+    return handleRouteError(
+      error,
+      'GET /api/lives',
+      'Internal server error while fetching lives'
     );
   }
 }
@@ -76,14 +74,11 @@ export async function POST(req: Request) {
       life: newLife,
       state: newState,
     });
-  } catch (error: any) {
-    if (error?.digest?.startsWith('NEXT_')) {
-      throw error;
-    }
-    console.error('API /api/lives POST error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error while creating new AI CEO life' },
-      { status: 500 }
+  } catch (error: unknown) {
+    return handleRouteError(
+      error,
+      'POST /api/lives',
+      'Internal server error while creating new AI CEO life'
     );
   }
 }
