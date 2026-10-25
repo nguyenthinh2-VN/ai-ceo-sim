@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getStateRepository } from '@/lib/db';
-import { createDemoState } from '@/lib/mock-data';
+import { createFreshInitialState } from '@/lib/mock-data';
 import { LifeData, TickData } from '@/lib/types';
 
 export async function GET() {
@@ -35,10 +35,11 @@ export async function POST(req: Request) {
       await repo.updateLifeStatus(currentLife.id, newStatus, summary);
     }
 
-    // Tạo đời AI mới với tên và tính cách random tránh trùng đời trước
-    const newState = createDemoState(
-      currentLife?.personality,
-      currentLife?.aiName
+    // Tạo đời AI mới với thông tin từ body hoặc ngẫu nhiên
+    const newState = createFreshInitialState(
+      body.aiName,
+      body.companyName,
+      body.personality
     );
 
     const newLifeId = crypto.randomUUID();

@@ -6,15 +6,28 @@ import { formatVietnameseTime } from '@/lib/format';
 interface StatusBarProps {
   isSleeping: boolean;
   currentTime: Date | null;
+  nextTickTime?: string;
 }
 
 export function StatusBar({
   isSleeping,
   currentTime,
+  nextTickTime,
 }: StatusBarProps) {
+  // Calculate next 15-minute slot (e.g. 10:15 -> 10:30)
+  const calculatedNext = React.useMemo(() => {
+    if (!currentTime) return '15 phút nữa';
+    const d = new Date(currentTime);
+    const mins = d.getMinutes();
+    const nextQuarter = (Math.floor(mins / 15) + 1) * 15;
+    d.setMinutes(nextQuarter, 0, 0);
+    return d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+  }, [currentTime]);
+
+  const displayNextTick = nextTickTime || calculatedNext;
+
   return (
     <>
-      {/* Status Bar Attached to Desk Bottom */}
       <div className="bg-white border border-[#D6C7AF] border-t-0 p-2.5 sm:p-3.5 px-3 sm:px-6 flex items-center gap-2 sm:gap-3 text-[11px] sm:text-sm text-stone-800 flex-wrap">
         <div className="flex items-center gap-2 select-none">
           <span
@@ -31,7 +44,7 @@ export function StatusBar({
         </span>
         <span className="text-stone-300 hidden xs:inline">·</span>
         <span className="text-stone-500">
-          Lượt tự chạy tiếp theo: <span className="font-mono font-semibold text-stone-800">18:00</span>
+          Lượt tự chạy tiếp theo: <span className="font-mono font-semibold text-emerald-700">{displayNextTick}</span>
         </span>
       </div>
 

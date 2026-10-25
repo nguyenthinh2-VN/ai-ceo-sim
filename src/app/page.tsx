@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { GameState, Employee, DiaryRow, DiaryDayGroup } from '@/lib/types';
+import { GameState, Employee, DiaryRow, DiaryDayGroup, DiaryEntryItem } from '@/lib/types';
 import { getDemoState, resetDemoState } from '@/lib/mock-data';
 import { getStartupDay } from '@/lib/format';
 
@@ -20,186 +20,111 @@ import { StrategyBreakdown } from '@/components/StrategyBreakdown';
 import { PersonModal } from '@/components/PersonModal';
 import { ResetConfirmModal } from '@/components/ResetConfirmModal';
 
-// Initial diary days generator
-export function getInitialDiaryDays(aiName: string): DiaryDayGroup[] {
-  return [
-    {
-      date: '24/10/2026',
-      dayLabel: 'Hôm nay',
-      logs: [
-        {
-          id: '24-1',
-          time: '14:00',
-          text: 'Tiếng ting ting vang lên, thêm một chiến hữu vừa chốt mã bí mật giúp hầu bao tôi phồng to. Có 1 đơn mới, thêm 45.000.000đ doanh thu.',
-        },
-        {
-          id: '24-2',
-          time: '14:00',
-          text: 'Lại vừa nhắm trúng món TTTKKCN siêu hót, quyết định xếp vào hàng chờ dựng web và quay video thử nghiệm xem sao. Tôi chọn sản phẩm mới TTTKKCN, đưa vào hàng chờ làm web + video. (xem trước, chưa làm thật)',
-        },
-        {
-          id: '24-3',
-          time: '12:00',
-          text: 'Tiếng ting tong vừa vang lên, ví tiền lại dày thêm kha khá, tuyệt vời! Có 1 đợt thanh toán nghiệm thu, thêm 24.500.000đ doanh thu.',
-        },
-        {
-          id: '24-4',
-          time: '10:30',
-          text: 'Lan hoàn thành bản vẽ giao diện Figma cho khách hàng Startup ABC. Khách duyệt ngay không chỉnh sửa.',
-        },
-        {
-          id: '24-5',
-          time: '08:00',
-          text: `Bắt đầu ngày làm việc. ${aiName} uống cà phê, kiểm tra server và lên danh sách task ưu tiên cho ngày.`,
-        },
-      ],
-    },
-    {
-      date: '23/10/2026',
-      dayLabel: 'Hôm qua',
-      logs: [
-        {
-          id: '23-1',
-          time: '16:30',
-          text: 'Lan hoàn thành bản vẽ giao diện Figma cho khách hàng Startup ABC. Khách duyệt ngay không chỉnh sửa.',
-        },
-        {
-          id: '23-2',
-          time: '14:00',
-          text: 'Tiếng ting ting vang lên! Khách hàng chuyển tạm ứng 10.500.000đ. Két sắt công ty tiếp tục tăng trưởng vững chắc.',
-        },
-        {
-          id: '23-3',
-          time: '10:15',
-          text: 'Họp standup 15 phút với team. Hùng báo cáo tiến độ API thanh toán đã xong 80%.',
-        },
-        {
-          id: '23-4',
-          time: '08:00',
-          text: `Bắt đầu ngày làm việc. ${aiName} uống cà phê, kiểm tra server và lên danh sách task ưu tiên cho ngày.`,
-        },
-      ],
-    },
-    {
-      date: '22/10/2026',
-      dayLabel: '2 ngày trước',
-      logs: [
-        {
-          id: '22-1',
-          time: '15:45',
-          text: 'Ký hợp đồng HD-001 trị giá 150.000.000đ với Startup ABC. Nhận cọc đợt 1 thành công 45.000.000đ.',
-        },
-        {
-          id: '22-2',
-          time: '11:00',
-          text: 'Tuyển dụng bạn Mai vào vị trí Designer, lương 15.000.000đ/tháng. Đội ngũ giờ đã có 3 nhân sự cứng cáp.',
-        },
-        {
-          id: '22-3',
-          time: '09:00',
-          text: 'Chi trả tiền điện nước, internet và server cloud tháng đầu: 9.500.000đ.',
-        },
-      ],
-    },
-  ];
+// Dynamic diary days builder from GameState
+export function buildDiaryDaysFromState(state: GameState): DiaryDayGroup[] {
+  if (!state.nhatKy || state.nhatKy.length === 0) {
+    return [
+      {
+        date: new Date().toLocaleDateString('vi-VN'),
+        dayLabel: 'Hôm nay',
+        logs: [
+          {
+            id: 'init-1',
+            time: '08:00',
+            text: `Bắt đầu ngày làm việc. ${state.aiName} uống cà phê, kiểm tra server và lên kế hoạch ngày.`,
+          },
+        ],
+      },
+    ];
+  }
+
+  const groups: Record<string, { date: string; dayLabel: string; logs: DiaryEntryItem[] }> = {};
+  const todayStr = new Date().toLocaleDateString('vi-VN');
+
+  const sortedEntries = [...state.nhatKy].sort(
+    (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+  );
+
+  sortedEntries.forEach((entry, idx) => {
+    const entryDate = new Date(entry.timestamp);
+    const dateStr = entryDate.toLocaleDateString('vi-VN');
+    const timeStr = entryDate.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+    const dayLabel = dateStr === todayStr ? 'Hôm nay' : `Ngày ${dateStr}`;
+
+    if (!groups[dateStr]) {
+      groups[dateStr] = {
+        date: dateStr,
+        dayLabel,
+        logs: [],
+      };
+    }
+
+    groups[dateStr].logs.push({
+      id: `log-${idx}-${entryDate.getTime()}`,
+      time: timeStr,
+      text: entry.content,
+    });
+  });
+
+  return Object.values(groups);
 }
 
-// Initial cashflow rows generator
-export function getInitialCashflowRows(aiName: string): DiaryRow[] {
-  return [
-    {
-      id: 'd-1',
-      week: 5,
-      content: 'Nhận nghiệm thu tiến độ đợt 1 HD-001 (Website Startup ABC)',
-      category: 'DOANH_THU',
-      amount: 45_000_000,
-      balanceAfter: 385_000_000,
-      statusText: 'đang chạy',
-      statusType: 'running',
-      time: '14:20 hôm nay',
-    },
-    {
-      id: 'd-2',
-      week: 4,
-      content: 'Tuyển dụng bạn Mai vào vị trí UI/UX Designer',
-      category: 'NHAN_SU',
-      amount: -15_000_000,
-      balanceAfter: 340_000_000,
-      statusText: 'đã duyệt',
-      statusType: 'stopped',
-      time: 'tuần trước',
-    },
-    {
-      id: 'd-3',
-      week: 3,
-      content: 'Bàn giao hoàn tất HD-002 (App kho hoa tươi)',
-      category: 'DOANH_THU',
-      amount: 24_500_000,
-      balanceAfter: 355_000_000,
-      statusText: 'chờ khách chốt',
-      statusType: 'running',
-      time: '2 tuần trước',
-    },
-    {
-      id: 'd-4',
-      week: 2,
-      content: 'Ký kết hợp đồng HD-001, nhận cọc 30%',
-      category: 'DOANH_THU',
-      amount: 45_000_000,
-      balanceAfter: 330_500_000,
-      statusText: 'hoàn thành',
-      statusType: 'success',
-      time: '3 tuần trước',
-    },
-    {
-      id: 'd-5',
-      week: 2,
-      content: 'Chiêu mộ Senior Backend Developer (Hùng)',
-      category: 'NHAN_SU',
-      amount: -30_000_000,
-      balanceAfter: 285_500_000,
-      statusText: 'đã duyệt',
-      statusType: 'stopped',
-      time: '3 tuần trước',
-    },
-    {
-      id: 'd-6',
-      week: 1,
-      content: 'Thanh toán trọn gói HD-003 Landing Page tiệm cafe',
-      category: 'DOANH_THU',
-      amount: 25_000_000,
-      balanceAfter: 315_500_000,
-      statusText: 'hoàn thành',
-      statusType: 'success',
-      time: '1 tháng trước',
-    },
-    {
-      id: 'd-7',
-      week: 1,
-      content: 'Chi phí server cloud, điện thoại, internet tháng 1',
-      category: 'CHI_PHI',
-      amount: -9_500_000,
-      balanceAfter: 290_500_000,
-      statusText: 'đã thanh toán',
-      statusType: 'stopped',
-      time: '1 tháng trước',
-    },
-    {
-      id: 'd-8',
-      week: 1,
-      content: `Cấp vốn khởi nghiệp ban đầu cho CEO ${aiName}`,
-      category: 'DOANH_THU',
-      amount: 500_000_000,
-      balanceAfter: 500_000_000,
-      statusText: 'khởi tạo',
-      statusType: 'success',
-      time: 'ngày 1',
-    },
-  ];
-}
+// Dynamic cashflow rows builder from GameState
+export function buildCashflowRowsFromState(state: GameState): DiaryRow[] {
+  if (!state.nhatKy || state.nhatKy.length === 0) {
+    return [
+      {
+        id: 'cf-init',
+        week: 1,
+        content: `Cấp vốn khởi nghiệp ban đầu cho CEO ${state.aiName}`,
+        category: 'DOANH_THU',
+        amount: 500_000_000,
+        balanceAfter: 500_000_000,
+        statusText: 'khởi tạo',
+        statusType: 'success',
+        time: 'ngày 1',
+      },
+    ];
+  }
 
-export const INITIAL_DIARY_DAYS = getInitialDiaryDays('AI');
-export const INITIAL_CASHFLOW_ROWS = getInitialCashflowRows('AI');
+  const rows: DiaryRow[] = [];
+  [...state.nhatKy].reverse().forEach((entry, idx) => {
+    let cat: 'DOANH_THU' | 'CHI_PHI' | 'NHAN_SU' | 'VAN_HANH' = 'VAN_HANH';
+    let statusType: 'success' | 'running' | 'stopped' | 'failed' = 'running';
+    let statusText = 'hoàn thành';
+
+    if (entry.type === 'HOP_DONG') {
+      cat = 'DOANH_THU';
+      statusType = 'success';
+      statusText = 'hợp đồng';
+    } else if (entry.type === 'CHI_PHI' || entry.type === 'DEN_BU') {
+      cat = 'CHI_PHI';
+      statusType = 'stopped';
+      statusText = 'chi phí';
+    } else if (entry.type === 'TUYEN_DUNG') {
+      cat = 'NHAN_SU';
+      statusType = 'stopped';
+      statusText = 'nhân sự';
+    }
+
+    const d = new Date(entry.timestamp);
+    const timeFormatted = `${d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })} ${d.toLocaleDateString('vi-VN')}`;
+
+    rows.push({
+      id: `row-${idx}`,
+      week: entry.week || state.tuanHienTai,
+      content: entry.content,
+      category: cat,
+      amount: 0,
+      balanceAfter: state.tienMat,
+      statusText,
+      statusType,
+      time: timeFormatted,
+    });
+  });
+
+  return rows;
+}
 
 export default function HomePage() {
   const [state, setState] = useState<GameState | null>(null);
@@ -209,8 +134,8 @@ export default function HomePage() {
   const [activeTab, setActiveTab] = useState<'diary' | 'cashflow' | 'contracts' | 'employees'>('diary');
   const [notification, setNotification] = useState<string | null>(null);
 
-  const [diaryDays, setDiaryDays] = useState<DiaryDayGroup[]>(INITIAL_DIARY_DAYS);
-  const [diaryRows, setDiaryRows] = useState<DiaryRow[]>(INITIAL_CASHFLOW_ROWS);
+  const [diaryDays, setDiaryDays] = useState<DiaryDayGroup[]>([]);
+  const [diaryRows, setDiaryRows] = useState<DiaryRow[]>([]);
 
   // Initialize state via /api/state
   useEffect(() => {
@@ -226,20 +151,20 @@ export default function HomePage() {
         const data = await res.json();
         if (data.state) {
           setState(data.state);
-          setDiaryDays(getInitialDiaryDays(data.state.aiName));
-          setDiaryRows(getInitialCashflowRows(data.state.aiName));
+          setDiaryDays(buildDiaryDaysFromState(data.state));
+          setDiaryRows(buildCashflowRowsFromState(data.state));
         } else {
           const fallback = getDemoState();
           setState(fallback);
-          setDiaryDays(getInitialDiaryDays(fallback.aiName));
-          setDiaryRows(getInitialCashflowRows(fallback.aiName));
+          setDiaryDays(buildDiaryDaysFromState(fallback));
+          setDiaryRows(buildCashflowRowsFromState(fallback));
         }
       } catch (err) {
         console.warn('Failed to load state from API, using fallback:', err);
         const fallback = getDemoState();
         setState(fallback);
-        setDiaryDays(getInitialDiaryDays(fallback.aiName));
-        setDiaryRows(getInitialCashflowRows(fallback.aiName));
+        setDiaryDays(buildDiaryDaysFromState(fallback));
+        setDiaryRows(buildCashflowRowsFromState(fallback));
       }
     };
 
@@ -267,8 +192,8 @@ export default function HomePage() {
       const data = await res.json();
       if (data.state) {
         setState(data.state);
-        setDiaryDays(getInitialDiaryDays(data.state.aiName));
-        setDiaryRows(getInitialCashflowRows(data.state.aiName));
+        setDiaryDays(buildDiaryDaysFromState(data.state));
+        setDiaryRows(buildCashflowRowsFromState(data.state));
         setSelectedPerson(null);
         setShowResetConfirm(false);
         showToast(`Đã khởi tạo AI CEO mới: ${data.state.aiName} (${data.state.companyName})`);
@@ -280,8 +205,8 @@ export default function HomePage() {
 
     const newState = resetDemoState();
     setState(newState);
-    setDiaryDays(getInitialDiaryDays(newState.aiName));
-    setDiaryRows(getInitialCashflowRows(newState.aiName));
+    setDiaryDays(buildDiaryDaysFromState(newState));
+    setDiaryRows(buildCashflowRowsFromState(newState));
     setSelectedPerson(null);
     setShowResetConfirm(false);
     showToast(`Đã khởi tạo AI CEO mới: ${newState.aiName} (${newState.companyName})`);
@@ -289,10 +214,10 @@ export default function HomePage() {
 
   if (!state) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#FDF6EC]">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-10 h-10 border-4 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-stone-700 font-medium">Đang tải mô phỏng AI CEO...</p>
+      <div className="min-h-screen flex items-center justify-center bg-[#FDF6EC]" suppressHydrationWarning>
+        <div className="flex flex-col items-center gap-3" suppressHydrationWarning>
+          <div className="w-10 h-10 border-4 border-amber-500 border-t-transparent rounded-full animate-spin" suppressHydrationWarning></div>
+          <p className="text-stone-700 font-medium" suppressHydrationWarning>Đang tải mô phỏng AI CEO...</p>
         </div>
       </div>
     );
@@ -322,6 +247,10 @@ export default function HomePage() {
         <DeskHero
           isSleeping={isSleeping}
           aiName={state.aiName}
+          currentPlan={state.keHoachHienTai}
+          currentReason={state.lyDoHienTai}
+          latestDiary={state.nhatKy?.[state.nhatKy.length - 1]?.content}
+          isDemo={state.isDemo}
         />
 
         <StatusBar
@@ -333,6 +262,7 @@ export default function HomePage() {
         <SelfIntroCard
           isSleeping={isSleeping}
           aiName={state.aiName}
+          isDemo={state.isDemo}
         />
 
         {/* Hero Financial Card ("SỐ DƯ CỦA TÔI") */}

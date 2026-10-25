@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getStateRepository } from '@/lib/db';
-import { getDemoState } from '@/lib/mock-data';
+import { createFreshInitialState } from '@/lib/mock-data';
 import { LifeData, TickData } from '@/lib/types';
 
 export async function GET(req: Request) {
@@ -9,18 +9,18 @@ export async function GET(req: Request) {
     const repo = getStateRepository();
     let currentLife = await repo.getCurrentLife();
 
-    // Nếu DB trống (lần đầu chạy): seed 1 đời từ mock-data
+    // Nếu DB trống (lần đầu chạy): tạo 1 đời khởi nghiệp ban đầu
     if (!currentLife) {
-      const demoState = getDemoState();
-      const lifeId = demoState.lifeId || crypto.randomUUID();
-      demoState.lifeId = lifeId;
+      const freshState = createFreshInitialState();
+      const lifeId = crypto.randomUUID();
+      freshState.lifeId = lifeId;
 
       const seededLife: LifeData = {
         id: lifeId,
-        aiName: demoState.aiName,
-        companyName: demoState.companyName,
-        personality: demoState.personality,
-        startedAt: demoState.startedAt,
+        aiName: freshState.aiName,
+        companyName: freshState.companyName,
+        personality: freshState.personality,
+        startedAt: freshState.startedAt,
         status: 'SONG',
       };
       await repo.createLife(seededLife);
@@ -28,12 +28,12 @@ export async function GET(req: Request) {
       const initialTick: TickData = {
         id: crypto.randomUUID(),
         lifeId: lifeId,
-        week: demoState.tuanHienTai,
-        plan: demoState.keHoachHienTai,
-        reason: demoState.lyDoHienTai,
-        diary: demoState.nhatKy,
+        week: freshState.tuanHienTai,
+        plan: freshState.keHoachHienTai,
+        reason: freshState.lyDoHienTai,
+        diary: freshState.nhatKy,
         actions: [],
-        state: demoState,
+        state: freshState,
         createdAt: new Date().toISOString(),
       };
       await repo.saveTick(initialTick);
@@ -44,21 +44,18 @@ export async function GET(req: Request) {
 
     // Fallback if life exists but tick is missing
     if (!latestTick) {
-      const demoState = getDemoState();
-      demoState.lifeId = currentLife.id;
-      demoState.aiName = currentLife.aiName;
-      demoState.companyName = currentLife.companyName;
-      demoState.personality = currentLife.personality;
+      const freshState = createFreshInitialState(currentLife.aiName, currentLife.companyName, currentLife.personality);
+      freshState.lifeId = currentLife.id;
 
       const fallbackTick: TickData = {
         id: crypto.randomUUID(),
         lifeId: currentLife.id,
-        week: demoState.tuanHienTai,
-        plan: demoState.keHoachHienTai,
-        reason: demoState.lyDoHienTai,
-        diary: demoState.nhatKy,
+        week: freshState.tuanHienTai,
+        plan: freshState.keHoachHienTai,
+        reason: freshState.lyDoHienTai,
+        diary: freshState.nhatKy,
         actions: [],
-        state: demoState,
+        state: freshState,
         createdAt: new Date().toISOString(),
       };
       await repo.saveTick(fallbackTick);

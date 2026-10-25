@@ -4,6 +4,9 @@
 
 export type AiStatus = 'DANG_LAM' | 'DANG_NGU' | 'NGHI_TRUA' | 'GIAI_LAO' | 'GIAI_TRI' | 'PHA_SAN' | 'CHO_AI_MOI';
 
+/** Chế độ làm việc AI đã chọn cho tuần này — quyết định cách engine chia 168 giờ. */
+export type WorkMode = 'LAM_VIEC' | 'CAY' | 'NGHI_NGOI' | 'KHONG_LAM_GI';
+
 export type ContractStatus = 'DANG_LAM' | 'BAN_GIAO' | 'KHACH_XEM' | 'CHOT' | 'HOAN_THANH' | 'HUY';
 
 export type DiaryType = 'HOP_DONG' | 'TUYEN_DUNG' | 'CHI_PHI' | 'NGHI_NGOI' | 'TAI_SAN' | 'SU_KIEN' | 'CANH_BAO' | 'PHA_SAN' | 'DEN_BU' | 'HOAT_DONG';
@@ -168,6 +171,13 @@ export interface GameState {
     totalAssetsEver: string[];
     peakNetWorth: number;
   };
+
+  // Real-time tick & engine tracking
+  lastTickAt?: string; // ISO timestamp of last processed tick
+  lastSettledMonth?: number; // tuần cuối cùng đã chốt sổ tháng, chống settle trùng
+  weeksCrunchStreak?: number; // số tuần liên tiếp cày, dùng cho morale penalty
+  cheDoLamViec?: WorkMode; // chế độ AI chọn cho tuần này (CAY tăng năng suất, NGHI_NGOI hồi sức)
+  isDemo?: boolean; // true if running on fallback rule-based brain
 }
 
 export interface AiAction {

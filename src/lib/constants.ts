@@ -26,6 +26,9 @@ export const MAX_DANH_TIENG = 100;
 export const MAX_VAY = 200_000_000;
 export const LAI_VAY_THANG = 0.015; // 1.5%/month
 
+// --- Số hành động tối đa AI được chọn mỗi tuần ---
+export const MAX_ACTIONS_PER_WEEK = 3;
+
 // --- Hours per week ---
 export const HOURS_PER_WEEK = 168;
 export const HOURS_PER_DAY = 24;
@@ -116,6 +119,42 @@ export const ASSET_PRICES: Record<string, { price: number; effect: string }> = {
   'Nâng cấp thiết bị': { price: 50_000_000, effect: 'Năng suất team +10%, tối đa 3 lần' },
 };
 export const ASSET_SELL_RATE = 0.7; // sell at 70% of purchase price
+
+// --- Salary adjustment rules (CAT_GIAM_LUONG / TANG_LUONG / THUONG) ---
+export const SALARY_CUT_RATE = 0.2; // mỗi lần cắt 20% lương hiện tại
+export const SALARY_FLOOR = 6_000_000; // sàn lương = mức Intern, không cắt xuống dưới
+export const MORALE_SALARY_CUT_PENALTY = -15; // cắt lương 1 người: morale người đó -15
+export const SALARY_RAISE_RATE = 0.1; // mỗi lần tăng 10% lương hiện tại
+export const MIN_BONUS_AMOUNT = 1_000_000; // thưởng nóng tối thiểu
+
+// --- Office ladder: CHUYEN_VAN_PHONG_NHO hạ đúng 1 bậc ---
+export const OFFICE_LADDER: string[] = [
+  'Làm tại nhà',
+  'Văn phòng nhỏ',
+  'Văn phòng vừa',
+  'Văn phòng lớn',
+];
+
+// --- Product lifecycle (BAT_DAU_SAN_PHAM / TAM_DUNG_SAN_PHAM) ---
+export const PRODUCT_START_COST = 20_000_000; // vốn bỏ ra để bắt đầu làm sản phẩm
+export const PRODUCT_LAUNCH_INITIAL_CUSTOMERS = 10; // khách hàng đầu tiên khi launch
+export const PRODUCT_DEFAULT_SUBSCRIPTION = 200_000; // giá thuê bao mặc định (đ/tháng/khách)
+
+// --- Team & equipment ---
+export const CEO_SKILL = 3; // tay nghề của chính CEO, cộng vào tổng skill của team
+export const EQUIPMENT_PRODUCTIVITY_BONUS = 0.1; // +10% tiến độ mỗi gói nâng cấp thiết bị
+export const EQUIPMENT_MAX_STACKS = 3; // tối đa 3 lần nâng cấp
+
+// --- Mặt bằng lương theo vai trò (dùng để tính lương tuyển mới) ---
+export const ROLE_MARKET_LEVEL: Record<string, string> = {
+  Backend: 'middle',
+  Frontend: 'middle',
+  Designer: 'middle',
+  Tester: 'junior',
+  PM: 'pm_sale',
+  Sale: 'pm_sale',
+  'Kế toán': 'junior',
+};
 
 // --- Bankruptcy rule ---
 export const BANKRUPTCY_NEGATIVE_MONTHS = 2; // 2 consecutive months with negative cash

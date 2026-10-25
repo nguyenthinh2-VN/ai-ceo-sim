@@ -126,8 +126,15 @@ export class SupabaseStateRepository implements StateRepository {
   }
 
   async saveTick(tick: TickData): Promise<void> {
+    const isValidUuid = (id?: string) =>
+      typeof id === 'string' &&
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+
+    const tickId = isValidUuid(tick.id) ? tick.id : crypto.randomUUID();
+    tick.id = tickId;
+
     const { error } = await this.client.from('ticks').insert({
-      id: tick.id || undefined,
+      id: tickId,
       life_id: tick.lifeId,
       week: tick.week,
       plan: tick.plan,
@@ -145,8 +152,15 @@ export class SupabaseStateRepository implements StateRepository {
   }
 
   async createLife(life: LifeData): Promise<void> {
+    const isValidUuid = (id?: string) =>
+      typeof id === 'string' &&
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+
+    const lifeId = isValidUuid(life.id) ? life.id : crypto.randomUUID();
+    life.id = lifeId;
+
     const { error } = await this.client.from('lives').insert({
-      id: life.id || undefined,
+      id: lifeId,
       ai_name: life.aiName,
       company_name: life.companyName,
       personality: life.personality,

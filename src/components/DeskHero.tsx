@@ -6,11 +6,19 @@ import { TerminalMonitor } from './TerminalMonitor';
 interface DeskHeroProps {
   isSleeping: boolean;
   aiName: string;
+  currentPlan?: string;
+  currentReason?: string;
+  latestDiary?: string;
+  isDemo?: boolean;
 }
 
 export function DeskHero({
   isSleeping,
   aiName,
+  currentPlan,
+  currentReason,
+  latestDiary,
+  isDemo,
 }: DeskHeroProps) {
   return (
     <div className="relative bg-[#E8DCC8] rounded-t-2xl pt-4 sm:pt-8 px-3 sm:px-8 border border-[#D6C7AF] border-b-0 shadow-sm overflow-visible">
@@ -48,6 +56,10 @@ export function DeskHero({
         <TerminalMonitor
           isSleeping={isSleeping}
           aiName={aiName}
+          currentPlan={currentPlan}
+          currentReason={currentReason}
+          latestDiary={latestDiary}
+          isDemo={isDemo}
         />
       </div>
 

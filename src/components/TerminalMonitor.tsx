@@ -14,11 +14,19 @@ const WORK_LOG_POOL = [
 interface TerminalMonitorProps {
   isSleeping: boolean;
   aiName: string;
+  currentPlan?: string;
+  currentReason?: string;
+  latestDiary?: string;
+  isDemo?: boolean;
 }
 
 export function TerminalMonitor({
   isSleeping,
   aiName,
+  currentPlan,
+  currentReason,
+  latestDiary,
+  isDemo = false,
 }: TerminalMonitorProps) {
   const [displayedText, setDisplayedText] = useState('');
   const [logIndex, setLogIndex] = useState(0);
@@ -28,12 +36,24 @@ export function TerminalMonitor({
     () => [
       'Đang nghỉ ngơi / nghỉ giải lao. Zzz...',
       `Đang nghỉ ngơi / nghỉ giải lao. ${aiName} đang ngủ nạp lại năng lượng sau giờ làm việc.`,
-      'Đang nghỉ ngơi / nghỉ giải lao. Tạm dừng code, chờ đến 18:00 xem lại tiến độ.',
+      'Đang nghỉ ngơi / nghỉ giải lao. Tạm dừng code, chờ đến lượt tiếp theo xem lại tiến độ.',
     ],
     [aiName]
   );
 
-  const activePool = isSleeping ? restLogs : WORK_LOG_POOL;
+  const dynamicWorkLogs = useMemo(() => {
+    const list: string[] = [];
+    if (currentPlan) list.push(currentPlan);
+    if (currentReason) list.push(currentReason);
+    if (latestDiary) list.push(latestDiary);
+    if (list.length === 0) {
+      list.push(`Đang kiểm tra server, tài chính và lập kế hoạch vận hành công ty.`);
+      list.push(`Tập trung triển khai hợp đồng và tối ưu hóa chi phí hàng tháng.`);
+    }
+    return list;
+  }, [currentPlan, currentReason, latestDiary]);
+
+  const activePool = isSleeping ? restLogs : dynamicWorkLogs;
 
   // Typewriter effect
   useEffect(() => {
@@ -64,9 +84,12 @@ export function TerminalMonitor({
 
   return (
     <div className="relative flex flex-col items-center justify-end flex-1 min-w-0 max-w-[430px]">
-      {/* Badge "CHẠY THỬ" taped on top-right corner of monitor */}
-      <div className="absolute -top-2.5 -right-1 sm:-top-3.5 sm:-right-3 z-30 bg-white text-[#C26715] font-extrabold text-[9px] sm:text-xs px-2 sm:px-3 py-0.5 sm:py-1 rounded-md sm:rounded-lg border sm:border-2 border-[#C26715] rotate-[10deg] shadow-md uppercase tracking-wider select-none">
-        CHẠY THỬ
+      {/* Badge "CHẠY THỬ" or "TỰ HÀNH" taped on top-right corner of monitor */}
+      <div className={`absolute -top-2.5 -right-1 sm:-top-3.5 sm:-right-3 z-30 font-extrabold text-[9px] sm:text-xs px-2 sm:px-3 py-0.5 sm:py-1 rounded-md sm:rounded-lg border sm:border-2 rotate-[10deg] shadow-md uppercase tracking-wider select-none ${isDemo
+        ? 'bg-white text-[#C26715] border-[#C26715]'
+        : 'bg-emerald-50 text-emerald-700 border-emerald-600'
+        }`}>
+        {isDemo ? 'CHẠY THỬ' : 'TỰ HÀNH'}
       </div>
 
       {/* Monitor Chassis */}
