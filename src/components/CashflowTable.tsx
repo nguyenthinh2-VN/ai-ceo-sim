@@ -11,19 +11,71 @@ interface CashflowTableProps {
 export function CashflowTable({ rows }: CashflowTableProps) {
   return (
     <div className="bg-white rounded-2xl border border-stone-200 shadow-xs overflow-hidden">
-      <div className="p-5 border-b border-stone-100 flex items-center justify-between">
+      <div className="p-4 sm:p-5 border-b border-stone-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5 sm:gap-4">
         <div>
-          <h3 className="text-base font-bold text-stone-900">
+          <h3 className="text-sm sm:text-base font-bold text-stone-900">
             Bảng dòng tiền & Biến động tài chính
           </h3>
-          <p className="text-xs text-stone-500 mt-0.5">
-            Số tiền và số dư được phân tách ở cột riêng, dễ theo dõi và đối soát
+          <p className="text-[11px] sm:text-xs text-stone-500 mt-0.5">
+            Số tiền và số dư được phân tách rõ ràng, dễ theo dõi và đối soát
           </p>
         </div>
-        <span className="text-xs text-stone-400 font-mono">{rows.length} giao dịch</span>
+        <span className="text-[11px] sm:text-xs text-stone-400 font-mono shrink-0">
+          {rows.length} giao dịch
+        </span>
       </div>
 
-      <div className="overflow-x-auto">
+      {/* MOBILE CARD VIEW: hiển thị khi màn hình < sm (640px) */}
+      <div className="block sm:hidden divide-y divide-stone-100">
+        {rows.map((row) => {
+          const isPositive = row.amount > 0;
+          const isNegative = row.amount < 0;
+
+          return (
+            <div key={row.id} className="p-3.5 space-y-2 hover:bg-stone-50/60 transition">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-bold text-stone-900 bg-stone-100 px-2 py-0.5 rounded text-[11px]">
+                  Tuần {row.week}
+                </span>
+                <span className="text-[11px] text-stone-400 font-mono">
+                  {row.time}
+                </span>
+              </div>
+
+              <p className="text-xs sm:text-sm text-stone-800 leading-relaxed font-medium">
+                {row.content}
+              </p>
+
+              <div className="flex items-center justify-between pt-1 text-xs border-t border-stone-50">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[11px] text-stone-400">Biến động:</span>
+                  <span className="font-mono font-bold">
+                    {isPositive && (
+                      <span className="text-emerald-600">+{formatVND(row.amount)}</span>
+                    )}
+                    {isNegative && (
+                      <span className="text-red-600">-{formatVND(Math.abs(row.amount))}</span>
+                    )}
+                    {!isPositive && !isNegative && (
+                      <span className="text-stone-400">0đ</span>
+                    )}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[11px] text-stone-400">Số dư:</span>
+                  <span className="font-mono font-bold text-stone-900">
+                    {formatVND(row.balanceAfter)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* DESKTOP TABLE VIEW: hiển thị khi màn hình >= sm */}
+      <div className="hidden sm:block overflow-x-auto">
         <table className="w-full text-left border-collapse text-xs sm:text-sm">
           <thead>
             <tr className="border-b border-stone-200/80 bg-stone-50/70 text-stone-500 font-semibold uppercase text-[11px] tracking-wider">

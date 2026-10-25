@@ -298,47 +298,51 @@ export default function HomePage() {
       </div>
 
       {/* 3. MAIN TABS (DIARY ACCORDION / CASHFLOW / CONTRACTS / TEAM) */}
-      <div className="max-w-4xl mx-auto px-4 mt-6">
-        {/* Tab navigation */}
-        <div className="flex items-center gap-2 border-b border-stone-200 pb-2 mb-5 overflow-x-auto">
+      <div className="max-w-4xl mx-auto px-3 sm:px-4 mt-6">
+        {/* Tab navigation: cuộn ngang mượt trên mobile */}
+        <div className="flex items-center gap-1.5 sm:gap-2 border-b border-stone-200 pb-2 mb-4 sm:mb-5 overflow-x-auto scrollbar-none -mx-3 px-3 sm:mx-0 sm:px-0">
           <button
             onClick={() => setActiveTab('diary')}
-            className={`text-sm font-bold px-4 py-2 rounded-lg transition whitespace-nowrap cursor-pointer ${activeTab === 'diary'
-              ? 'bg-stone-900 text-white shadow-xs'
-              : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100'
-              }`}
+            className={`text-xs sm:text-sm font-bold px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg transition whitespace-nowrap cursor-pointer shrink-0 ${
+              activeTab === 'diary'
+                ? 'bg-stone-900 text-white shadow-xs'
+                : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100'
+            }`}
           >
-            📖 Nhật ký của tôi ({diaryDays.reduce((sum, d) => sum + d.logs.length, 0)})
+            📖 Nhật ký ({diaryDays.reduce((sum, d) => sum + d.logs.length, 0)})
           </button>
 
           <button
             onClick={() => setActiveTab('cashflow')}
-            className={`text-sm font-bold px-4 py-2 rounded-lg transition whitespace-nowrap cursor-pointer ${activeTab === 'cashflow'
-              ? 'bg-stone-900 text-white shadow-xs'
-              : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100'
-              }`}
+            className={`text-xs sm:text-sm font-bold px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg transition whitespace-nowrap cursor-pointer shrink-0 ${
+              activeTab === 'cashflow'
+                ? 'bg-stone-900 text-white shadow-xs'
+                : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100'
+            }`}
           >
-            📊 Bảng dòng tiền ({diaryRows.length})
+            📊 Dòng tiền ({diaryRows.length})
           </button>
 
           <button
             onClick={() => setActiveTab('contracts')}
-            className={`text-sm font-bold px-4 py-2 rounded-lg transition whitespace-nowrap cursor-pointer ${activeTab === 'contracts'
-              ? 'bg-stone-900 text-white shadow-xs'
-              : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100'
-              }`}
+            className={`text-xs sm:text-sm font-bold px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg transition whitespace-nowrap cursor-pointer shrink-0 ${
+              activeTab === 'contracts'
+                ? 'bg-stone-900 text-white shadow-xs'
+                : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100'
+            }`}
           >
-            📋 Hợp đồng & Dự án ({state.hopDong.length})
+            📋 Hợp đồng ({state.hopDong.length})
           </button>
 
           <button
             onClick={() => setActiveTab('employees')}
-            className={`text-sm font-bold px-4 py-2 rounded-lg transition whitespace-nowrap cursor-pointer ${activeTab === 'employees'
-              ? 'bg-stone-900 text-white shadow-xs'
-              : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100'
-              }`}
+            className={`text-xs sm:text-sm font-bold px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg transition whitespace-nowrap cursor-pointer shrink-0 ${
+              activeTab === 'employees'
+                ? 'bg-stone-900 text-white shadow-xs'
+                : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100'
+            }`}
           >
-            👥 Đội ngũ nhân sự ({state.nhanVien.length})
+            👥 Nhân sự ({state.nhanVien.length})
           </button>
         </div>
 
