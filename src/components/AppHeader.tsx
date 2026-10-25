@@ -24,9 +24,6 @@ export function AppHeader({
               <h1 className="font-bold text-sm sm:text-base text-stone-900 tracking-tight whitespace-nowrap">
                 AI CEO SIMULATOR
               </h1>
-              <span className="text-[9px] sm:text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-300 whitespace-nowrap">
-                IT Tycoon
-              </span>
             </div>
             <p className="text-[11px] sm:text-xs text-stone-500 hidden xs:block line-clamp-1">
               Mô phỏng doanh nghiệp IT tự hành 24/7
@@ -45,9 +42,8 @@ export function AppHeader({
           {/* Read-only status indicator */}
           <div className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-md border border-stone-200/80 bg-white/80 text-stone-700 text-[11px] sm:text-xs font-semibold select-none whitespace-nowrap">
             <span
-              className={`w-2 h-2 rounded-full shrink-0 ${
-                isSleeping ? 'bg-purple-500' : 'bg-emerald-500 animate-pulse'
-              }`}
+              className={`w-2 h-2 rounded-full shrink-0 ${isSleeping ? 'bg-purple-500' : 'bg-emerald-500 animate-pulse'
+                }`}
             />
             <span>{isSleeping ? 'Đang ngủ' : 'Đang làm'}</span>
           </div>

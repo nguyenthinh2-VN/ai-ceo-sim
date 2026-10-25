@@ -23,6 +23,7 @@ interface TerminalMonitorProps {
   currentReason?: string;
   latestDiary?: string;
   isDemo?: boolean;
+  onTypingChange?: (isTyping: boolean) => void;
 }
 
 export function TerminalMonitor({
@@ -32,12 +33,17 @@ export function TerminalMonitor({
   currentReason,
   latestDiary,
   isDemo = false,
+  onTypingChange,
 }: TerminalMonitorProps) {
   const [typer, setTyper] = useState<TypewriterState>({
     index: 0,
     charCount: 0,
     phase: 'typing',
   });
+
+  useEffect(() => {
+    onTypingChange?.(typer.phase === 'typing' && !isSleeping);
+  }, [typer.phase, isSleeping, onTypingChange]);
 
   const restLogs = useMemo(
     () => [
@@ -137,8 +143,11 @@ export function TerminalMonitor({
         {isDemo ? 'CHẠY THỬ' : 'TỰ HÀNH'}
       </div>
 
-      {/* Monitor Chassis */}
-      <div className="w-full bg-[#24262D] rounded-lg sm:rounded-xl p-1.5 sm:p-2.5 shadow-2xl border border-[#373A44] relative z-10">
+      {/* Monitor Chassis with Ambient Glow */}
+      <div className={`w-full bg-[#24262D] rounded-lg sm:rounded-xl p-1.5 sm:p-2.5 shadow-2xl border border-[#373A44] relative z-10 transition-shadow duration-700 ${isSleeping
+          ? 'shadow-[0_8px_30px_rgba(168,85,247,0.18)]'
+          : 'shadow-[0_8px_30px_rgba(16,185,129,0.22)]'
+        }`}>
         {/* Monitor Top Bezel dots */}
         <div className="flex items-center gap-1 sm:gap-1.5 pb-1 sm:pb-2">
           <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[#FF5F56]" />
@@ -185,9 +194,11 @@ export function TerminalMonitor({
       <div className="w-8 sm:w-12 h-3.5 sm:h-6 bg-gradient-to-b from-[#A6B2BD] to-[#8895A2] mx-auto" />
       <div className="w-20 sm:w-32 h-1.5 sm:h-2 bg-gradient-to-b from-[#B5C0CA] to-[#929FA9] mx-auto rounded-full" />
 
-      {/* Blue Coffee Mug with fish icon on desk */}
-      <div className="absolute -right-2 sm:-right-5 bottom-0 w-6 h-7 sm:w-8 sm:h-9 bg-[#2563EB] rounded-b sm:rounded-b-md border border-[#1D4ED8] flex items-center justify-center shadow-md z-15">
-        <span className="text-white text-[10px] sm:text-xs select-none">🐟</span>
+      {/* Blue Coffee Mug with fish icon & rising steam on desk */}
+      <div className="absolute -right-2 sm:-right-5 bottom-0 w-6 h-7 sm:w-8 sm:h-9 bg-[#2563EB] rounded-b sm:rounded-b-md border border-[#1D4ED8] flex items-center justify-center shadow-md z-15 group cursor-pointer" title="Cốc nước năng lượng của CEO ☕">
+        {/* Tiny rising steam above blue mug */}
+        <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-2 h-2 steam-wave animate-steam-2 opacity-70" />
+        <span className="text-white text-[10px] sm:text-xs select-none animate-fish-wiggle group-hover:scale-125 transition-transform">🐟</span>
         <div className="absolute -right-1.5 sm:-right-2 top-1 sm:top-2 w-2 sm:w-2.5 h-3 sm:h-4 border-2 border-[#2563EB] border-l-0 rounded-r" />
       </div>
     </div>
