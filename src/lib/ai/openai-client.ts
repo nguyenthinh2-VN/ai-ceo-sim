@@ -40,7 +40,7 @@ export class OpenAiClient implements LlmClient {
 
   constructor(apiKey?: string, model?: string, baseUrl?: string) {
     const key = apiKey || process.env.OPENAI_API_KEY;
-    this.model = model || process.env.LLM_MODEL || 'gpt-4o-mini';
+    this.model = model || process.env.LLM_MODEL || 'creq/deepseek-v4.1-flash-req';
     const rawBaseUrl = baseUrl || process.env.OPENAI_BASE_URL;
     const baseURL = rawBaseUrl && rawBaseUrl.trim().length > 0 ? rawBaseUrl.trim() : undefined;
 
