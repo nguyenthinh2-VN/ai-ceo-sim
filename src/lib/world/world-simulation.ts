@@ -14,6 +14,7 @@ import {
   Product,
   Asset,
   Clock,
+  LiveStatus,
 } from '../types';
 import {
   OFFICE_COST,
@@ -624,6 +625,45 @@ export class WorldSimulationEngine implements WorldSimulation {
   }
 
   /**
+   * Cập nhật hoạt động của CEO theo loại giờ thực tế:
+   * - Giờ làm (8–12, 13–18): 'Đang làm việc' (LAM)
+   * - Nghỉ trưa (12–13): 'Đang nghỉ trưa' (NGHI)
+   * - Giải trí (18–23): 'Đang nghỉ ngơi' (NGHI)
+   * - Đêm (23–8): 'Đang ngủ' (NGU)
+   *
+   * TUYỆT ĐỐI KHÔNG can thiệp vào trangThaiAi (logic mô phỏng 168 giờ dùng nó).
+   */
+  private updateCeoHoatDongByHour(vnHour: number, timestamp: Date): void {
+    let hoatDongHienTai = 'Đang làm việc';
+    let trangThai: LiveStatus = 'LAM';
+
+    if (vnHour === 12) {
+      hoatDongHienTai = 'Đang nghỉ trưa';
+      trangThai = 'NGHI';
+    } else if (vnHour >= 18 && vnHour < 23) {
+      hoatDongHienTai = 'Đang nghỉ ngơi';
+      trangThai = 'NGHI';
+    } else if (vnHour >= 23 || vnHour < 8) {
+      hoatDongHienTai = 'Đang ngủ';
+      trangThai = 'NGU';
+    } else {
+      hoatDongHienTai = 'Đang làm việc';
+      trangThai = 'LAM';
+    }
+
+    const isoTime = timestamp.toISOString();
+    const current = this.state.ceoHoatDong;
+
+    if (!current || current.hoatDongHienTai !== hoatDongHienTai) {
+      this.state.ceoHoatDong = {
+        hoatDongHienTai,
+        trangThai,
+        tu: isoTime,
+      };
+    }
+  }
+
+  /**
    * Advance real-time 1:1 hours.
    * Takes exact elapsed hours between now and lastTickAt.
    */
@@ -634,6 +674,9 @@ export class WorldSimulationEngine implements WorldSimulation {
     // mãi mãi không bao giờ tích lũy đủ 1 giờ — thế giới đứng im vĩnh viễn.
     // Giữ nguyên mốc cũ để các lần tick ngắn tự cộng dồn thành 1 giờ hoàn chỉnh.
     if (elapsedHours <= 0) {
+      // Tick 0 giờ: vẫn cập nhật ceoHoatDong theo giờ thực của now để phản ánh đúng thực tế
+      const vnHour = (now.getUTCHours() + 7) % 24;
+      this.updateCeoHoatDongByHour(vnHour, now);
       return;
     }
 
@@ -644,6 +687,9 @@ export class WorldSimulationEngine implements WorldSimulation {
     for (let h = 0; h < elapsedHours; h++) {
       const currentHourTime = new Date(lastTickDate.getTime() + (h + 1) * 3600 * 1000);
       const vnHour = (currentHourTime.getUTCHours() + 7) % 24;
+
+      // Cập nhật trạng thái hiển thị của CEO theo giờ thực
+      this.updateCeoHoatDongByHour(vnHour, currentHourTime);
 
       const isSleeping = this.state.trangThaiAi === 'DANG_NGU';
       const isIdle = this.state.cheDoLamViec === 'KHONG_LAM_GI';

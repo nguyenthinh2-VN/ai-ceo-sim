@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 
+import { getCeoStatusDisplay, CeoStatusDisplay } from '@/lib/format';
+
 /** Nhịp gõ từng ký tự, thời gian giữ nguyên dòng, và thời gian mờ dần. */
 const TYPING_MS = 35;
 const HOLD_MS = 4500;
@@ -17,7 +19,8 @@ interface TypewriterState {
 }
 
 interface TerminalMonitorProps {
-  isSleeping: boolean;
+  ceoStatus?: CeoStatusDisplay;
+  isSleeping?: boolean;
   aiName: string;
   currentPlan?: string;
   currentReason?: string;
@@ -27,6 +30,7 @@ interface TerminalMonitorProps {
 }
 
 export function TerminalMonitor({
+  ceoStatus,
   isSleeping,
   aiName,
   currentPlan,
@@ -35,6 +39,14 @@ export function TerminalMonitor({
   isDemo = false,
   onTypingChange,
 }: TerminalMonitorProps) {
+  const currentStatus =
+    ceoStatus ||
+    getCeoStatusDisplay(
+      isSleeping ? { hoatDongHienTai: 'Đang ngủ', trangThai: 'NGU' } : null
+    );
+
+  const isWorking = currentStatus.isWorking;
+
   const [typer, setTyper] = useState<TypewriterState>({
     index: 0,
     charCount: 0,
@@ -42,17 +54,32 @@ export function TerminalMonitor({
   });
 
   useEffect(() => {
-    onTypingChange?.(typer.phase === 'typing' && !isSleeping);
-  }, [typer.phase, isSleeping, onTypingChange]);
+    onTypingChange?.(typer.phase === 'typing' && isWorking);
+  }, [typer.phase, isWorking, onTypingChange]);
 
-  const restLogs = useMemo(
-    () => [
-      'Đang nghỉ ngơi / nghỉ giải lao. Zzz...',
-      `Đang nghỉ ngơi / nghỉ giải lao. ${aiName} đang ngủ nạp lại năng lượng sau giờ làm việc.`,
-      'Đang nghỉ ngơi / nghỉ giải lao. Tạm dừng code, chờ đến lượt tiếp theo xem lại tiến độ.',
-    ],
-    [aiName]
-  );
+  const restLogs = useMemo(() => {
+    if (currentStatus.label === 'Đang nghỉ trưa') {
+      return [
+        'Đang nghỉ trưa ăn uống và nạp lại năng lượng.',
+        `${aiName} đang nghỉ trưa cùng team. Tiếp tục làm việc lúc 13h00.`,
+        'Tạm dừng code giờ trưa, phục hồi tinh thần sẵn sàng cho ca chiều.',
+      ];
+    }
+    if (currentStatus.label === 'Đang ngủ') {
+      return [
+        'Đang ngủ nạp lại năng lượng. Zzz...',
+        `${aiName} đang ngủ say. Sẽ bắt đầu ngày làm việc mới vào sáng mai.`,
+        'Server và hệ thống vẫn chạy ngầm, CEO đang nghỉ ngơi dưỡng sức.',
+      ];
+    }
+    // 'Đang nghỉ ngơi' (giờ giải trí 18-23h)
+    return [
+      'Đang nghỉ ngơi / thư giãn buổi tối sau giờ làm việc.',
+      `${aiName} đang nghỉ ngơi, xả hơi và chuẩn bị tinh thần cho ngày mới.`,
+      'Hết giờ làm việc hành chính, tạm gác công việc để cân bằng cuộc sống.',
+    ];
+  }, [aiName, currentStatus.label]);
+
 
   const dynamicWorkLogs = useMemo(() => {
     const list: string[] = [];
@@ -66,7 +93,7 @@ export function TerminalMonitor({
     return list;
   }, [currentPlan, currentReason, latestDiary]);
 
-  const activePool = isSleeping ? restLogs : dynamicWorkLogs;
+  const activePool = !isWorking ? restLogs : dynamicWorkLogs;
   const fullText = activePool[typer.index % activePool.length];
 
   // Nguồn dữ liệu đổi (AI thức/ngủ, kế hoạch mới) thì dòng đang gõ không còn
@@ -144,9 +171,9 @@ export function TerminalMonitor({
       </div>
 
       {/* Monitor Chassis with Ambient Glow */}
-      <div className={`w-full bg-[#24262D] rounded-lg sm:rounded-xl p-1.5 sm:p-2.5 shadow-2xl border border-[#373A44] relative z-10 transition-shadow duration-700 ${isSleeping
-          ? 'shadow-[0_8px_30px_rgba(168,85,247,0.18)]'
-          : 'shadow-[0_8px_30px_rgba(16,185,129,0.22)]'
+      <div className={`w-full bg-[#24262D] rounded-lg sm:rounded-xl p-1.5 sm:p-2.5 shadow-2xl border border-[#373A44] relative z-10 transition-shadow duration-700 ${!isWorking
+        ? 'shadow-[0_8px_30px_rgba(168,85,247,0.18)]'
+        : 'shadow-[0_8px_30px_rgba(16,185,129,0.22)]'
         }`}>
         {/* Monitor Top Bezel dots */}
         <div className="flex items-center gap-1 sm:gap-1.5 pb-1 sm:pb-2">
@@ -154,27 +181,27 @@ export function TerminalMonitor({
           <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[#FFBD2E]" />
           <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[#27C93F]" />
           <span className="text-[9px] sm:text-[11px] font-mono text-stone-400 ml-1.5 sm:ml-2 truncate">
-            terminal — {aiName.toLowerCase()}@ceo {isSleeping ? '[NGHỈ NGƠI]' : '[WORK]'}
+            terminal — {aiName.toLowerCase()}@ceo {currentStatus.tag}
           </span>
         </div>
 
         {/* Monitor Screen: TYPEWRITER EFFECT */}
         <div className="bg-[#15171D] rounded sm:rounded-lg p-2 sm:p-3.5 pb-7 sm:pb-8 min-h-[95px] sm:min-h-[140px] font-mono text-[11px] sm:text-[13px] text-[#A6AFBE] relative flex flex-col justify-start">
           <div
-            className={`font-bold mb-0.5 sm:mb-1 text-xs sm:text-sm ${isSleeping ? 'text-purple-400' : 'text-emerald-400'
+            className={`font-bold mb-0.5 sm:mb-1 text-xs sm:text-sm ${!isWorking ? 'text-purple-400' : 'text-emerald-400'
               }`}
           >
-            {isSleeping ? '💤 >' : '>'}
+            {currentStatus.promptSymbol}
           </div>
           <div
             className={`transition-opacity duration-300 leading-snug sm:leading-relaxed ${isFading ? 'opacity-0' : 'opacity-100'
               }`}
           >
-            <span className={isSleeping ? 'text-purple-200 font-medium' : ''}>
-              {displayedText || (isSleeping ? 'Đang nghỉ ngơi / nghỉ giải lao...' : 'Đang xử lý công việc...')}
+            <span className={!isWorking ? 'text-purple-200 font-medium' : ''}>
+              {displayedText || (!isWorking ? `${currentStatus.label}...` : 'Đang xử lý công việc...')}
             </span>
             <span
-              className={`inline-block w-1.5 sm:w-2 h-3.5 sm:h-4 animate-pulse align-middle ml-1 ${isSleeping ? 'bg-purple-400' : 'bg-emerald-400'
+              className={`inline-block w-1.5 sm:w-2 h-3.5 sm:h-4 animate-pulse align-middle ml-1 ${!isWorking ? 'bg-purple-400' : 'bg-emerald-400'
                 }`}
             />
           </div>
@@ -182,10 +209,9 @@ export function TerminalMonitor({
           {/* Read-only status indicator */}
           <div className="absolute bottom-1.5 right-1.5 sm:bottom-2.5 sm:right-2.5 z-20 text-[10px] sm:text-xs font-mono font-medium text-stone-400 select-none flex items-center gap-1.5 bg-black/40 border border-white/10 px-2 py-0.5 rounded">
             <span
-              className={`w-1.5 h-1.5 rounded-full ${isSleeping ? 'bg-purple-400' : 'bg-emerald-400 animate-pulse'
-                }`}
+              className={`w-1.5 h-1.5 rounded-full ${currentStatus.dotColor}`}
             />
-            <span>{isSleeping ? 'Đang ngủ' : 'Đang làm'}</span>
+            <span>{currentStatus.label}</span>
           </div>
         </div>
       </div>

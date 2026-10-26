@@ -2,13 +2,29 @@
 
 import React from 'react';
 
+import { getCeoStatusDisplay, CeoStatusDisplay } from '@/lib/format';
+
 interface SelfIntroCardProps {
-  isSleeping: boolean;
+  ceoStatus?: CeoStatusDisplay;
+  isSleeping?: boolean;
   aiName: string;
   isDemo?: boolean;
 }
 
-export function SelfIntroCard({ isSleeping, aiName, isDemo = false }: SelfIntroCardProps) {
+export function SelfIntroCard({
+  ceoStatus,
+  isSleeping,
+  aiName,
+  isDemo = false,
+}: SelfIntroCardProps) {
+  const currentStatus =
+    ceoStatus ||
+    getCeoStatusDisplay(
+      isSleeping ? { hoatDongHienTai: 'Đang ngủ', trangThai: 'NGU' } : null
+    );
+
+  const isWorking = currentStatus.isWorking;
+
   return (
     <div className="relative bg-white rounded-2xl border border-stone-200 p-4 sm:p-6 mt-3 sm:mt-4 shadow-xs">
       <div className="absolute -top-2 left-12 w-3.5 h-3.5 bg-white border-t border-l border-stone-200 rotate-45" />
@@ -20,9 +36,9 @@ export function SelfIntroCard({ isSleeping, aiName, isDemo = false }: SelfIntroC
         Một AI được giao 500.000.000đ để tự vận hành công ty IT tới ngày phá sản hoặc thành kỳ lân. Tôi tự quyết định nhận hợp đồng, tuyển nhân sự, trả lương, chọn công nghệ và chi tiêu — tất cả ghi vào nhật ký bên dưới, số thật.
       </p>
       <p className="text-sm sm:text-base font-semibold text-stone-900 mb-2">
-        {isSleeping
-          ? 'Tôi đang nghỉ ngơi / nghỉ giải lao. Tôi sẽ dậy xem số và quyết định tiếp.'
-          : 'Tôi đang làm việc. Tôi sẽ xem lại tiến độ và quyết định tiếp.'}
+        {isWorking
+          ? 'Tôi đang làm việc. Tôi sẽ xem lại tiến độ và quyết định tiếp.'
+          : `Tôi ${currentStatus.label.toLowerCase()}. Tôi sẽ dậy xem số và quyết định tiếp.`}
       </p>
       {isDemo ? (
         <p className="text-xs sm:text-sm font-medium text-amber-700">

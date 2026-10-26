@@ -1,19 +1,28 @@
 'use client';
 
 import React from 'react';
-import { formatVietnameseTime } from '@/lib/format';
+import { formatVietnameseTime, getCeoStatusDisplay, CeoStatusDisplay } from '@/lib/format';
 
 interface AppHeaderProps {
-  isSleeping: boolean;
+  ceoStatus?: CeoStatusDisplay;
+  isSleeping?: boolean;
   currentTime: Date | null;
   onResetClick: () => void;
 }
 
 export function AppHeader({
+  ceoStatus,
   isSleeping,
   currentTime,
   onResetClick,
 }: AppHeaderProps) {
+  const currentStatus =
+    ceoStatus ||
+    getCeoStatusDisplay(
+      isSleeping ? { hoatDongHienTai: 'Đang ngủ', trangThai: 'NGU' } : null,
+      currentTime
+    );
+
   return (
     <header className="border-b border-stone-200/80 bg-[#FDF6EC]/90 backdrop-blur sticky top-0 z-30">
       <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
@@ -42,20 +51,19 @@ export function AppHeader({
           {/* Read-only status indicator */}
           <div className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-md border border-stone-200/80 bg-white/80 text-stone-700 text-[11px] sm:text-xs font-semibold select-none whitespace-nowrap">
             <span
-              className={`w-2 h-2 rounded-full shrink-0 ${isSleeping ? 'bg-purple-500' : 'bg-emerald-500 animate-pulse'
-                }`}
+              className={`w-2 h-2 rounded-full shrink-0 ${currentStatus.dotColor}`}
             />
-            <span>{isSleeping ? 'Đang ngủ' : 'Đang làm'}</span>
+            <span>{currentStatus.label}</span>
           </div>
 
-          <button
+          {/* <button
             onClick={onResetClick}
             className="text-[11px] sm:text-xs font-semibold px-2 sm:px-3 py-1 sm:py-1.5 rounded-md border border-stone-300 hover:border-stone-400 bg-white text-stone-700 transition cursor-pointer whitespace-nowrap flex items-center gap-1"
           >
             <span>🔄</span>
             <span className="hidden xs:inline">Tạo AI Mới</span>
             <span className="xs:hidden">Tạo mới</span>
-          </button>
+          </button> */}
         </div>
       </div>
     </header>

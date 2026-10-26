@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, useMemo, useSyncExternalStore } from 'react';
 import { GameState, Employee, DiaryRow, DiaryDayGroup, DiaryEntryItem } from '@/lib/types';
 import { resetDemoState } from '@/lib/mock-data';
-import { getStartupDay } from '@/lib/format';
+import { getStartupDay, getCeoStatusDisplay } from '@/lib/format';
 import { useRealtimeSimulation } from '@/hooks/useRealtimeSimulation';
 
 import { AppHeader } from '@/components/AppHeader';
@@ -205,7 +205,12 @@ export default function HomePage() {
     );
   }, [lastEvent, showToast]);
 
-  const isSleeping = state?.trangThaiAi === 'DANG_NGU';
+  // Trạng thái CEO theo giờ thực: làm việc, nghỉ trưa, nghỉ ngơi, ngủ
+  const ceoStatus = useMemo(
+    () => getCeoStatusDisplay(state?.ceoHoatDong, currentTime),
+    [state?.ceoHoatDong, currentTime]
+  );
+  const isSleeping = !ceoStatus.isWorking;
 
   // Reset / Create new AI via POST /api/lives
   const handleResetAI = async () => {
@@ -260,6 +265,7 @@ export default function HomePage() {
 
       {/* 1. TOP HEADER */}
       <AppHeader
+        ceoStatus={ceoStatus}
         isSleeping={isSleeping}
         currentTime={currentTime}
         onResetClick={() => setShowResetConfirm(true)}
@@ -268,6 +274,7 @@ export default function HomePage() {
       {/* 2. HERO DESK & STATUS SECTION */}
       <div className="w-full max-w-4xl mx-auto px-3 sm:px-4 mt-4 sm:mt-6">
         <DeskHero
+          ceoStatus={ceoStatus}
           isSleeping={isSleeping}
           aiName={state.aiName}
           currentPlan={state.keHoachHienTai}
@@ -277,6 +284,7 @@ export default function HomePage() {
         />
 
         <StatusBar
+          ceoStatus={ceoStatus}
           isSleeping={isSleeping}
           currentTime={currentTime}
           connectionStatus={connectionStatus}
@@ -284,6 +292,7 @@ export default function HomePage() {
 
         {/* Self-Introduction Card ("Tôi là {aiName}.") */}
         <SelfIntroCard
+          ceoStatus={ceoStatus}
           isSleeping={isSleeping}
           aiName={state.aiName}
           isDemo={state.isDemo}
@@ -303,44 +312,40 @@ export default function HomePage() {
         <div className="flex items-center gap-1.5 sm:gap-2 border-b border-stone-200 pb-2 mb-4 sm:mb-5 overflow-x-auto scrollbar-none -mx-3 px-3 sm:mx-0 sm:px-0">
           <button
             onClick={() => setActiveTab('diary')}
-            className={`text-xs sm:text-sm font-bold px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg transition whitespace-nowrap cursor-pointer shrink-0 ${
-              activeTab === 'diary'
-                ? 'bg-stone-900 text-white shadow-xs'
-                : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100'
-            }`}
+            className={`text-xs sm:text-sm font-bold px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg transition whitespace-nowrap cursor-pointer shrink-0 ${activeTab === 'diary'
+              ? 'bg-stone-900 text-white shadow-xs'
+              : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100'
+              }`}
           >
             📖 Nhật ký ({diaryDays.reduce((sum, d) => sum + d.logs.length, 0)})
           </button>
 
           <button
             onClick={() => setActiveTab('cashflow')}
-            className={`text-xs sm:text-sm font-bold px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg transition whitespace-nowrap cursor-pointer shrink-0 ${
-              activeTab === 'cashflow'
-                ? 'bg-stone-900 text-white shadow-xs'
-                : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100'
-            }`}
+            className={`text-xs sm:text-sm font-bold px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg transition whitespace-nowrap cursor-pointer shrink-0 ${activeTab === 'cashflow'
+              ? 'bg-stone-900 text-white shadow-xs'
+              : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100'
+              }`}
           >
             📊 Dòng tiền ({diaryRows.length})
           </button>
 
           <button
             onClick={() => setActiveTab('contracts')}
-            className={`text-xs sm:text-sm font-bold px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg transition whitespace-nowrap cursor-pointer shrink-0 ${
-              activeTab === 'contracts'
-                ? 'bg-stone-900 text-white shadow-xs'
-                : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100'
-            }`}
+            className={`text-xs sm:text-sm font-bold px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg transition whitespace-nowrap cursor-pointer shrink-0 ${activeTab === 'contracts'
+              ? 'bg-stone-900 text-white shadow-xs'
+              : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100'
+              }`}
           >
             📋 Hợp đồng ({state.hopDong.length})
           </button>
 
           <button
             onClick={() => setActiveTab('employees')}
-            className={`text-xs sm:text-sm font-bold px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg transition whitespace-nowrap cursor-pointer shrink-0 ${
-              activeTab === 'employees'
-                ? 'bg-stone-900 text-white shadow-xs'
-                : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100'
-            }`}
+            className={`text-xs sm:text-sm font-bold px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg transition whitespace-nowrap cursor-pointer shrink-0 ${activeTab === 'employees'
+              ? 'bg-stone-900 text-white shadow-xs'
+              : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100'
+              }`}
           >
             👥 Nhân sự ({state.nhanVien.length})
           </button>

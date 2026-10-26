@@ -1,11 +1,12 @@
 'use client';
 
-import React from 'react';
-import { formatVietnameseTime } from '@/lib/format';
+import { formatVietnameseTime, getCeoStatusDisplay, CeoStatusDisplay } from '@/lib/format';
 import type { ConnectionStatus } from '@/hooks/useRealtimeSimulation';
+import React from 'react';
 
 interface StatusBarProps {
-  isSleeping: boolean;
+  ceoStatus?: CeoStatusDisplay;
+  isSleeping?: boolean;
   currentTime: Date | null;
   nextTickTime?: string;
   connectionStatus?: ConnectionStatus;
@@ -35,11 +36,19 @@ const CONNECTION_BADGE: Record<
 };
 
 export function StatusBar({
+  ceoStatus,
   isSleeping,
   currentTime,
   nextTickTime,
   connectionStatus,
 }: StatusBarProps) {
+  const currentStatus =
+    ceoStatus ||
+    getCeoStatusDisplay(
+      isSleeping ? { hoatDongHienTai: 'Đang ngủ', trangThai: 'NGU' } : null,
+      currentTime
+    );
+
   // Calculate next 15-minute slot (e.g. 10:15 -> 10:30)
   const calculatedNext = React.useMemo(() => {
     if (!currentTime) return '15 phút nữa';
@@ -57,11 +66,10 @@ export function StatusBar({
       <div className="bg-white border border-[#D6C7AF] border-t-0 p-2.5 sm:p-3.5 px-3 sm:px-6 flex items-center gap-2 sm:gap-3 text-[11px] sm:text-sm text-stone-800 flex-wrap">
         <div className="flex items-center gap-2 select-none">
           <span
-            className={`w-2 h-2 rounded-full ${isSleeping ? 'bg-purple-500 animate-pulse' : 'bg-emerald-500 animate-pulse'
-              }`}
+            className={`w-2 h-2 rounded-full ${currentStatus.dotColor}`}
           />
           <span className="font-bold text-stone-800">
-            {isSleeping ? 'Đang nghỉ ngơi / nghỉ giải lao' : 'Đang làm việc'}
+            {currentStatus.label}
           </span>
         </div>
         <span className="text-stone-300">·</span>

@@ -2,10 +2,12 @@
 
 import React, { useState } from 'react';
 import Image from 'next/image';
+import { getCeoStatusDisplay, CeoStatusDisplay } from '@/lib/format';
 import { TerminalMonitor } from './TerminalMonitor';
 
 interface DeskHeroProps {
-  isSleeping: boolean;
+  ceoStatus?: CeoStatusDisplay;
+  isSleeping?: boolean;
   aiName: string;
   currentPlan?: string;
   currentReason?: string;
@@ -14,6 +16,7 @@ interface DeskHeroProps {
 }
 
 export function DeskHero({
+  ceoStatus,
   isSleeping,
   aiName,
   currentPlan,
@@ -21,6 +24,13 @@ export function DeskHero({
   latestDiary,
   isDemo,
 }: DeskHeroProps) {
+  const currentStatus =
+    ceoStatus ||
+    getCeoStatusDisplay(
+      isSleeping ? { hoatDongHienTai: 'Đang ngủ', trangThai: 'NGU' } : null
+    );
+
+  const isWorking = currentStatus.isWorking;
   const [isTyping, setIsTyping] = useState(false);
 
   return (
@@ -41,7 +51,7 @@ export function DeskHero({
         {/* Left Column: Cat image slot + Keyboard */}
         <div className="relative flex flex-col items-center justify-end w-[110px] sm:w-[220px] flex-shrink-0">
           {/* 5. Smooth Floating Zzz particles */}
-          {isSleeping && (
+          {!isWorking && (
             <div className="absolute top-1 left-3 sm:top-2 sm:left-6 select-none pointer-events-none z-30 font-bold font-mono text-purple-600">
               <span className="absolute -left-1 top-5 text-xs sm:text-sm animate-zzz-drift-1">z</span>
               <span className="absolute left-2 top-2 text-sm sm:text-base animate-zzz-drift-2">z</span>
@@ -51,11 +61,11 @@ export function DeskHero({
 
           {/* 1. Character Image with Idle / Sleeping Bobbing */}
           <div
-            className={`w-[105px] h-[95px] sm:w-[230px] sm:h-[195px] flex items-end justify-center relative ${isSleeping ? 'animate-cat-sleeping' : 'animate-cat-working'
+            className={`w-[105px] h-[95px] sm:w-[230px] sm:h-[195px] flex items-end justify-center relative ${!isWorking ? 'animate-cat-sleeping' : 'animate-cat-working'
               }`}
           >
             {/* 2. Coffee Cup Steam Waves (rising above the cup in cat's paw) */}
-            {!isSleeping && (
+            {isWorking && (
               <div className="absolute left-[18px] sm:left-[42px] bottom-[48px] sm:bottom-[102px] z-20 pointer-events-none">
                 <div className="w-2.5 sm:w-3.5 h-2.5 sm:h-3.5 steam-wave animate-steam-1" />
                 <div className="w-2 sm:w-3 h-2 sm:h-3 steam-wave animate-steam-2 ml-1 -mt-1" />
@@ -63,8 +73,8 @@ export function DeskHero({
             )}
 
             <Image
-              src={isSleeping ? '/character/sleep.png' : '/character/cat.png'}
-              alt={isSleeping ? `${aiName} đang nghỉ ngơi / nghỉ giải lao` : `${aiName} AI CEO`}
+              src={!isWorking ? '/character/sleep.png' : '/character/cat.png'}
+              alt={!isWorking ? `${aiName} ${currentStatus.label.toLowerCase()}` : `${aiName} AI CEO`}
               fill
               sizes="(max-width: 640px) 105px, 230px"
               style={{ mixBlendMode: 'multiply', objectFit: 'contain', objectPosition: 'bottom' }}
@@ -91,7 +101,8 @@ export function DeskHero({
 
         {/* Right Column: PC Monitor on stand + Badge + Mug */}
         <TerminalMonitor
-          isSleeping={isSleeping}
+          ceoStatus={currentStatus}
+          isSleeping={!isWorking}
           aiName={aiName}
           currentPlan={currentPlan}
           currentReason={currentReason}
