@@ -303,6 +303,7 @@ export default function HomePage() {
           tienMat={state.tienMat}
           tuanHienTai={state.tuanHienTai}
           startupDay={startupDay}
+          lastTickAt={state.lastTickAt}
         />
       </div>
 

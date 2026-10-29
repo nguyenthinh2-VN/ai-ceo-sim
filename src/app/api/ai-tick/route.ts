@@ -19,6 +19,7 @@ import { AiBrainImpl } from '@/lib/ai/ai-brain';
 import { WorldSimulationEngine } from '@/lib/world/world-simulation';
 import { TickData, GameState } from '@/lib/types';
 import { getDemoState } from '@/lib/mock-data';
+import { filterRejectedDiaryEntries, normalizeDiaryWeek } from '@/lib/ai/ai-response-parser';
 
 // LLM có thể chậm; Vercel mặc định 10s là quá ngắn cho 1 lượt gọi GPT.
 export const maxDuration = 60;
@@ -109,6 +110,12 @@ async function runTick(forceDecision: boolean, overrideElapsedHours?: number) {
   // 6. Apply decisions to world
   const { rejected } = await simulation.applyActions(decision.actions);
 
+  // Nếu applyActions từ chối hành động nào, ghi dòng thông báo hệ thống và lọc bỏ các dòng diary của LLM nhắc tới hành động đó
+  if (rejected.length > 0) {
+    decision.diary.push(`[Hệ thống] Đã từ chối ${rejected.length} hành động vi phạm luật: ${rejected.join('; ')}`);
+  }
+  decision.diary = filterRejectedDiaryEntries(decision.diary, rejected);
+
   // 7. Advance time 1:1 catch-up
   simulation.advanceTime(hoursToAdvance, now);
 
@@ -130,7 +137,7 @@ async function runTick(forceDecision: boolean, overrideElapsedHours?: number) {
       finalState.nhatKy.unshift({
         week: finalState.tuanHienTai,
         type: 'HOAT_DONG',
-        content: entry,
+        content: normalizeDiaryWeek(entry, finalState.tuanHienTai),
         timestamp: now.toISOString(),
       });
     }

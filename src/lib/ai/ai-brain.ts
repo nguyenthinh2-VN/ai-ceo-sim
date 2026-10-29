@@ -44,10 +44,22 @@ export class AiBrainImpl implements AiBrain {
     //    8:00 mà chưa đủ 1 giờ tích lũy vẫn là cùng một thế giới.
     if (hoursElapsed <= 0) return false;
 
-    const vnHour = (now.getUTCHours() + 7) % 24;
+    const currentVnHour = (now.getUTCHours() + 7) % 24;
 
-    // 1. Morning start of work day (8:00 VN)
-    if (vnHour === 8) return true;
+    // 1. Ba mốc gọi LLM định kỳ mỗi ngày:
+    //    - 8h sáng: khởi đầu ngày làm việc, lên kế hoạch và ưu tiên
+    //    - 12h trưa: rà tiến độ buổi sáng, điều chỉnh kế hoạch buổi chiều
+    //    - 21h tối: tổng kết ngày (giờ làm/ngủ, tiến độ hợp đồng, tiền mặt)
+    //    Mỗi mốc chỉ gọi ĐÚNG 1 lần/ngày: kiểm tra nếu currentVnHour thuộc {8, 12, 21}
+    //    và khác giờ VN của lastTickAt (đảm bảo tick thứ 2 trong cùng giờ không gọi lại).
+    const SCHEDULED_HOURS = [8, 12, 21];
+    if (SCHEDULED_HOURS.includes(currentVnHour)) {
+      const lastTickDate = state.lastTickAt ? new Date(state.lastTickAt) : null;
+      const lastVnHour = lastTickDate ? (lastTickDate.getUTCHours() + 7) % 24 : -1;
+      if (currentVnHour !== lastVnHour) {
+        return true;
+      }
+    }
 
     // 2. Any contract completed 100% needing handover
     const hasReadyContract = state.hopDong.some(

@@ -80,7 +80,9 @@ export function DiaryAccordion({ diaryDays }: DiaryAccordionProps) {
                       <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded bg-stone-200 text-stone-700">
                         {log.time}
                       </span>
-                      <span className="text-xs text-stone-400">· Tự động ghi lại</span>
+                      <span className="text-xs text-stone-400">
+                        {log.text.startsWith('[Hệ thống]') ? '· Hệ thống ghi' : '· AI viết'}
+                      </span>
                     </div>
                     <p className="text-xs sm:text-sm text-stone-800 leading-relaxed font-sans">
                       {log.text}

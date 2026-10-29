@@ -7,12 +7,34 @@ interface FinancialHeroCardProps {
   tienMat: number;
   tuanHienTai: number;
   startupDay: number;
+  lastTickAt?: string;
+}
+
+function formatLastTickAt(lastTickAt?: string): string {
+  if (!lastTickAt) return 'Lượt gần nhất --:--';
+  const d = new Date(lastTickAt);
+  if (isNaN(d.getTime())) return 'Lượt gần nhất --:--';
+
+  const timeStr = d.toLocaleTimeString('vi-VN', {
+    timeZone: 'Asia/Ho_Chi_Minh',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+  const dateStr = d.toLocaleDateString('vi-VN', {
+    timeZone: 'Asia/Ho_Chi_Minh',
+    day: '2-digit',
+    month: '2-digit',
+  }).replace(/\//g, '-');
+
+  return `Lượt gần nhất ${timeStr} ${dateStr}`;
 }
 
 export function FinancialHeroCard({
   tienMat,
   tuanHienTai,
   startupDay,
+  lastTickAt,
 }: FinancialHeroCardProps) {
   const isProfit = tienMat - 500_000_000 >= 0;
 
@@ -42,7 +64,7 @@ export function FinancialHeroCard({
         <span>
           Tuần thứ {tuanHienTai} • Ngày khởi nghiệp thứ {startupDay}
         </span>
-        <span>Lượt gần nhất 16:00 24-10</span>
+        <span>{formatLastTickAt(lastTickAt)}</span>
       </div>
     </div>
   );

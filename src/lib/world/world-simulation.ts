@@ -691,6 +691,31 @@ export class WorldSimulationEngine implements WorldSimulation {
       // Cập nhật trạng thái hiển thị của CEO theo giờ thực
       this.updateCeoHoatDongByHour(vnHour, currentHourTime);
 
+      // Qua mốc 00:00 VN: Thêm 1 dòng tổng kết ngày từ số liệu state thật (mỗi ngày đúng 1 lần)
+      if (vnHour === 0) {
+        const currentDateIso = currentHourTime.toISOString().slice(0, 10);
+        const alreadySummarized = this.state.nhatKy.some(
+          (entry) =>
+            entry.content.startsWith('[Hệ thống] Hôm nay:') &&
+            entry.timestamp.slice(0, 10) === currentDateIso
+        );
+        if (!alreadySummarized) {
+          const activeContracts = this.state.hopDong.filter((c) => c.status === 'DANG_LAM');
+          const contractProgressStr =
+            activeContracts.length > 0
+              ? activeContracts.map((c) => `tiến độ ${c.name} ${c.progress}%`).join(', ') + '; '
+              : '';
+          const summaryContent = `[Hệ thống] Hôm nay: làm ${this.state.gioSongTuanNay.lamViec}h, họp ${this.state.gioSongTuanNay.hop}h, ngủ ${this.state.gioSongTuanNay.ngu}h, nghỉ trưa ${this.state.gioSongTuanNay.nghiTrua}h, giải lao ${this.state.gioSongTuanNay.giaiLao}h, giải trí ${this.state.gioSongTuanNay.giaiTri}h; ${contractProgressStr}tiền mặt ${formatVND(this.state.tienMat)}; năng lượng ${this.state.nangLuong}.`;
+
+          this.state.nhatKy.unshift({
+            week: this.state.tuanHienTai,
+            type: 'SU_KIEN',
+            content: summaryContent,
+            timestamp: currentHourTime.toISOString(),
+          });
+        }
+      }
+
       const isSleeping = this.state.trangThaiAi === 'DANG_NGU';
       const isIdle = this.state.cheDoLamViec === 'KHONG_LAM_GI';
       const isLunchTime = vnHour === 12; // 12:00 - 13:00 VN
@@ -762,7 +787,21 @@ export class WorldSimulationEngine implements WorldSimulation {
             workModeBonus;
 
           for (const contract of activeContracts) {
+            const prevProgress = contract.progress;
             contract.progress = Math.min(100, Math.round((contract.progress + progressInc) * 10) / 10);
+
+            // Khi hợp đồng vượt mốc tiến độ 25/50/75/100% thì thêm 1 dòng sự kiện ngắn
+            const milestones = [25, 50, 75, 100];
+            for (const milestone of milestones) {
+              if (prevProgress < milestone && contract.progress >= milestone) {
+                this.state.nhatKy.unshift({
+                  week: this.state.tuanHienTai,
+                  type: 'SU_KIEN',
+                  content: `[Hệ thống] ${contract.name} đạt ${milestone}% tiến độ.`,
+                  timestamp: currentHourTime.toISOString(),
+                });
+              }
+            }
             // NOTE: Even at 100%, contract does NOT auto-handover! Must wait for BAN_GIAO_HOP_DONG
           }
         }

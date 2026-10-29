@@ -307,6 +307,7 @@ export function parseAiResponse(
   }
 
   // Validate diary entries
+  // Validate diary entries
   const diary: string[] = [];
   const rawDiary: unknown[] = Array.isArray(parsed.diary) ? parsed.diary : [];
   for (const d of rawDiary) {
@@ -316,10 +317,12 @@ export function parseAiResponse(
     }
   }
 
-  // If rejected actions occurred, append a note to diary
+  // If rejected actions occurred, append a note to diary and filter out hallucinated lines
   if (rejected.length > 0) {
     diary.push(`[Hệ thống] Đã từ chối ${rejected.length} hành động vi phạm luật: ${rejected.join('; ')}`);
   }
+
+  const sanitizedDiary = filterRejectedDiaryEntries(diary, rejected);
 
   return {
     success: rejected.length === 0,
@@ -327,9 +330,101 @@ export function parseAiResponse(
       plan,
       reason,
       actions: validActions,
-      diary,
+      diary: sanitizedDiary,
     },
     rejected,
     rawText,
   };
 }
+
+/**
+ * Lọc bỏ các dòng nhật ký của LLM khi hành động tương ứng bị hệ thống từ chối.
+ *
+ * Vì sao phải lọc:
+ * LLM sinh ra nhật ký cùng lúc với danh sách hành động, tức là TRƯỚC KHI engine
+ * duyệt tính hợp lệ (ví dụ tuyển người nhưng không đủ tiền, ký hợp đồng nhưng không hợp lệ).
+ * Nếu action bị applyActions từ chối mà diary vẫn giữ lại, người dùng sẽ thấy nhật ký
+ * một đằng ("Tôi đã tuyển bạn Backend...") nhưng bảng nhân sự một nẻo (không có người).
+ * Lưới an toàn này chủ động quét các hành động bị reject và loại bỏ các dòng diary liên quan,
+ * chỉ giữ lại các dòng kế hoạch hợp lệ và dòng thông báo "[Hệ thống] Đã từ chối...".
+ */
+export function filterRejectedDiaryEntries(
+  diary: string[],
+  rejectedMessages: string[]
+): string[] {
+  if (!rejectedMessages || rejectedMessages.length === 0) {
+    return diary;
+  }
+
+  const rejectedJoined = rejectedMessages.join(' ').toUpperCase();
+  const keywordsToRemove: string[] = [];
+
+  if (
+    rejectedJoined.includes('THUE_NGUOI') ||
+    rejectedJoined.includes('TUYỂN') ||
+    rejectedJoined.includes('THUÊ') ||
+    rejectedJoined.includes('ỨNG VIÊN')
+  ) {
+    keywordsToRemove.push('tuyển', 'thuê', 'nhân viên', 'backend', 'middle', 'frontend', 'junior', 'senior', 'dev', 'tester');
+  }
+  if (
+    rejectedJoined.includes('HOP_DONG') ||
+    rejectedJoined.includes('TIM_HOP_DONG') ||
+    rejectedJoined.includes('BAN_GIAO')
+  ) {
+    keywordsToRemove.push('ký', 'hợp đồng', 'nhận hợp đồng');
+  }
+  if (
+    rejectedJoined.includes('MUA_TAI_SAN') ||
+    rejectedJoined.includes('TÀI SẢN') ||
+    rejectedJoined.includes('THIẾT BỊ')
+  ) {
+    keywordsToRemove.push('mua', 'tài sản', 'thiết bị');
+  }
+  if (
+    rejectedJoined.includes('SA_THAI') ||
+    rejectedJoined.includes('ĐUỔI')
+  ) {
+    keywordsToRemove.push('sa thải', 'đuổi');
+  }
+  if (
+    rejectedJoined.includes('VAY') ||
+    rejectedJoined.includes('VAY_NGAN_HANG')
+  ) {
+    keywordsToRemove.push('vay');
+  }
+
+  if (keywordsToRemove.length === 0) {
+    return diary;
+  }
+
+  return diary.filter((entry) => {
+    // Luôn giữ lại các dòng thông báo của hệ thống
+    if (entry.startsWith('[Hệ thống]')) {
+      return true;
+    }
+
+    const lower = entry.toLowerCase();
+    const hasRejectedKeyword = keywordsToRemove.some((kw) => lower.includes(kw));
+    return !hasRejectedKeyword;
+  });
+}
+
+/**
+ * Chuẩn hóa số tuần ở đầu dòng diary theo tuần thực của hệ thống (tránh việc LLM bịa số tuần).
+ * Bắt các biến thể như "Tuần 1:", "Tuần 12 -", "Tuần 99.", v.v.
+ * Nếu dòng bắt đầu bằng "[Hệ thống]", giữ nguyên.
+ */
+export function normalizeDiaryWeek(entry: string, currentWeek: number): string {
+  if (entry.startsWith('[Hệ thống]')) {
+    return entry;
+  }
+
+  const weekPrefixRegex = /^Tuần\s+\d+\s*[:\-\.]?\s*/i;
+  if (weekPrefixRegex.test(entry)) {
+    return entry.replace(weekPrefixRegex, `Tuần ${currentWeek}: `);
+  }
+
+  return `Tuần ${currentWeek}: ${entry}`;
+}
+
